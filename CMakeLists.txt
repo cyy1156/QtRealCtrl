@@ -14,18 +14,18 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
 set(PROJECT_SOURCES
         main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
+        ui/mainwindow.cpp
+        ui/mainwindow.h
+        ui/mainwindow.ui
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(RealCtrl
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        dcsprotocoltypes.h dcsprotocoltypes.cpp
-        ctrlmode.h ctrlmode.cpp
-        sysform.h sysform.cpp
+        protocol/dcsprotocoltypes.h protocol/dcsprotocoltypes.cpp
+        protocol/ctrlmode.h protocol/ctrlmode.cpp
+        protocol/sysform.h protocol/sysform.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET RealCtrl APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -46,6 +46,12 @@ else()
 endif()
 
 target_link_libraries(RealCtrl PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+
+target_include_directories(RealCtrl PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/ui
+    ${CMAKE_CURRENT_SOURCE_DIR}/protocol
+)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
