@@ -4,6 +4,7 @@
 #include<QBuffer>
 #include<QDebug>
 #include "protocol/sysform.h"
+#include "protocol/framecodec.h"
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
@@ -11,7 +12,7 @@ int main(int argc, char *argv[])
     //w.show();
 
 
-    SysForm from;
+    /*SysForm from;
     from.primeName="MainForm";
     from.auxName="AuxFrom";
 
@@ -51,5 +52,35 @@ int main(int argc, char *argv[])
 
     return 0;  // 这里只做协议验证，不跑 GUI
     //return a.exec();
+*/
+    // 绑定接收信号
+    FrameCodec codec;
+    QObject::connect(&codec, &FrameCodec::frameReceived,
+                     [](quint8 type, quint16 seq, QByteArray pay) {
+                         qDebug() << "\n===== 成功解析一帧 =====";
+                         qDebug() << "消息类型: 0x" + QString::number(type,16);
+                         qDebug() << "序列号:" << seq;
+                         qDebug() << "负载长度:" << pay.size();
+                         qDebug() << "负载HEX:" << pay.toHex();
+                     });
 
+    // 1. 编码一个 HELLO 帧（空负载，序号1）
+    QByteArray frame = codec.encodeFrame(
+        static_cast<quint8>(MsgType::HELLO),
+        0,
+        1,
+        QByteArray()
+        );
+
+    qDebug() << "发送帧 HEX:" << frame.toHex();
+
+    // 2. 把帧喂给解码器（模拟串口接收）
+    codec.feedBytes(frame);
+
+    // 测试带 payload 的帧
+    QByteArray testPay = "HelloSDS";
+    QByteArray frame2 = codec.encodeFrame(static_cast<quint8>(MsgType::Set_TARGET), FLAG_NEED_ACK, 2, testPay);
+    codec.feedBytes(frame2);
+
+    return a.exec();
 }

@@ -1,3 +1,5 @@
+//固定序列化数据协议
+
 #ifndef SYSFORM_H
 #define SYSFORM_H
 
