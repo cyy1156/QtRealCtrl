@@ -6,8 +6,8 @@
 #include<QDebug>
 #include "protocol/sysform.h"
 #include "protocol/framecodec.h"
-
-
+#include "protocol/tlvcodec.h"
+#include<QString>
 
 
 
@@ -88,7 +88,20 @@ int main(int argc, char *argv[])
                          qDebug() << "序列号:" << seq;
                          qDebug() << "负载长度:" << pay.size();
                          qDebug() << "负载HEX:" << pay.toHex();
-                     });
+                         auto items=Tlvcodec::decodeItems(pay);
+
+                             QString text;
+                             quint8 mode=0;
+                             if(Tlvcodec::tryGetString(items,TlvType::TextMessage,text))
+                            {
+                                     qDebug()<<"Text ="<<text;
+                              }
+                             if(Tlvcodec::tryGetUInt8(items,TlvType::Mode,mode))
+                             {
+                                  qDebug()<<"Mode ="<<mode;
+                             }
+
+    });
 
     QSerialPort tx;//发送
     QSerialPort rx;//接收
@@ -133,7 +146,19 @@ int main(int argc, char *argv[])
     });
     // 生成两帧用于测试
     const QByteArray f1 = codec.encodeFrame(static_cast<quint8>(MsgType::HELLO), 0, 1, QByteArray());
-    const QByteArray f2 = codec.encodeFrame(static_cast<quint8>(MsgType::SET_PARAMS), 0, 2, QByteArray("ABCDEF"));
+    QVector<TlvItem> items;
+    //先构造 TLV 列表
+    Tlvcodec::appendString(items,TlvType::TextMessage,QStringLiteral("HelloTLV"));
+    Tlvcodec::appendUInt8(items,TlvType::Mode,3);
+    //编码成payload(真正的 TLV 二进制）
+    QByteArray payload =Tlvcodec::encodeItems(items);
+    const QByteArray f2 =codec.encodeFrame(
+        static_cast<quint8>(MsgType::SET_PARAMS),
+        0,
+        2,
+        payload
+        );
+    //const QByteArray f2 = codec.encodeFrame(static_cast<quint8>(MsgType::SET_PARAMS), 0, 2, QByteArray("ABCDEF"));
     qDebug() << "f1 =" << f1.toHex();//.toHex(' ').toUpper();//将字节数组（QByteArray）中的每个字节转换为对应的两位十六进制字符串，最终拼接成一个完整的十六进制字符串返回。
     qDebug() << "f2 =" << f2.toHex();//.toHex(' ').toUpper();
     // 1) 半包测试：把 f1 分成很多小块写入一次性定时器静态函数第二个参数是一个匿名 lambda 函数

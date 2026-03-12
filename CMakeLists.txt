@@ -27,6 +27,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         protocol/ctrlmode.h protocol/ctrlmode.cpp
         protocol/sysform.h protocol/sysform.cpp
         protocol/framecodec.h protocol/framecodec.cpp
+        protocol/tlvcodec.h protocol/tlvcodec.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET RealCtrl APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
