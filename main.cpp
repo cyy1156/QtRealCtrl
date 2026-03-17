@@ -7,6 +7,7 @@
 #include "protocol/sysform.h"
 #include "protocol/framecodec.h"
 #include "protocol/tlvcodec.h"
+#include "device/serialdevice.h"
 #include<QString>
 
 
@@ -80,7 +81,7 @@ int main(int argc, char *argv[])
     //return a.exec();
 */
     // 绑定接收信号
-    FrameCodec codec;
+    /*FrameCodec codec;
     QObject::connect(&codec, &FrameCodec::frameReceived,
                      [](quint8 type, quint16 seq, QByteArray pay) {
                          qDebug() << "\n===== 成功解析一帧 =====";
@@ -140,7 +141,7 @@ int main(int argc, char *argv[])
        当串口接收缓冲区有新字节到达时自动触发（比如 TX 发了 1 个字节 / 10 个字节，只要有新数据就触发）；
        [&](){ ... }：信号触发后执行的槽函数（这里是匿名 lambda 函数）——[&] 表示捕获外部所有变量的引用（比如 rx、codec），
        花括号里是具体要做的事。*/
-    QObject::connect(&rx,&QSerialPort::readyRead,[&](){
+    /*QObject::connect(&rx,&QSerialPort::readyRead,[&](){
         const QByteArray bytes =rx.readAll();
         codec.feedBytes(bytes);
     });
@@ -203,5 +204,52 @@ int main(int argc, char *argv[])
     QByteArray frame2 = codec.encodeFrame(static_cast<quint8>(MsgType::Set_TARGET), FLAG_NEED_ACK, 2, testPay);
     codec.feedBytes(frame2);
 */
+
+    SerialDevice devA;
+    SerialDevice devB;
+    devA.setPortName("COM5");
+    devB.setPortName("COM6");
+    QObject::connect(&devA,&SerialDevice::errorQccurred,[](const QString& m){
+        qDebug()<<"[A error]"<<m;
+    });
+    QObject::connect(&devB,&SerialDevice::errorQccurred,[](const QString& m){
+        qDebug()<<"[B error]"<<m;
+    });
+    QObject::connect(&devB,&SerialDevice::frameReceived,[](quint8 msgType,quint16 seq,QByteArray payload){
+        qDebug()<<"[B] frameReceived type=0x"+QString::number(msgType,16)
+                 <<"seq="<<seq
+                 <<"payloadHex="<<payload.toHex();
+              //TLV解码验证
+              auto items=Tlvcodec::decodeItems(payload);
+              QString text;
+              quint8 mode=0;
+              if(Tlvcodec::tryGetString(items,TlvType::TextMessage,text))
+              {
+                  qDebug()<<"[B] Text="<<text;
+              }
+              if(Tlvcodec::tryGetUInt8(items,TlvType::Mode,mode))
+              {
+                  qDebug()<<"[B] Mode="<<mode;
+
+              }
+
+    });
+    if(!devA.open()) return 1;
+    if(!devB.open()) return 1;
+     //A 发一条 SET_PARAMS，B 收到后解析 TLV
+    QTimer::singleShot(200,[&](){
+        QVector<TlvItem> items;
+        Tlvcodec::appendString(items,TlvType::TextMessage,QStringLiteral("HelloTLV"));
+        Tlvcodec::appendUInt8(items,TlvType::Mode,3);
+
+        QByteArray payload =Tlvcodec::encodeItems(items);
+        devA.send(static_cast<quint8>(MsgType::SET_PARAMS),0,payload);
+        QTimer::singleShot(1200,&a,&QCoreApplication::quit);
+        //QTimer::singleShot 是 Qt 提供的 “一次性定时器”，作用是「延迟指定时间后，执行一次指定的动作（函数 / Lambda）
+        //，执行完就自动销毁，不会重复触发」。
+        return a.exec();
+    });
+
+
     return a.exec();
 }

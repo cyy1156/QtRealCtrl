@@ -28,6 +28,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         protocol/sysform.h protocol/sysform.cpp
         protocol/framecodec.h protocol/framecodec.cpp
         protocol/tlvcodec.h protocol/tlvcodec.cpp
+        device/DeviceInterface.h
+        device/serialdevice.h device/serialdevice.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET RealCtrl APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -57,6 +59,7 @@ target_include_directories(RealCtrl PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/ui
     ${CMAKE_CURRENT_SOURCE_DIR}/protocol
+    ${CMAKE_CURRENT_SOURCE_DIR}/device
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
