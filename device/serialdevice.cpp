@@ -23,7 +23,7 @@ bool SerialDevice::open()
 {
     if(m_portName.isEmpty())
     {
-        emit errorQccurred("SerialDevice:portName is empty");
+        emit errorOccurred("SerialDevice:portName is empty");
         return false;
     }
     if(m_port.isOpen())
@@ -39,7 +39,7 @@ bool SerialDevice::open()
 
     if(!m_port.open(QIODevice::ReadWrite)){
         //判断是否以可读写的方式打开
-        emit errorQccurred("open failed"+m_port.errorString());
+        emit errorOccurred("open failed"+m_port.errorString());
         return false;
     }
     emit opened();
@@ -59,7 +59,7 @@ bool SerialDevice::send(quint8 msgTpye,quint8 flags,const QByteArray& payload )
 {
     if(!m_port.isOpen())
     {
-        emit errorQccurred("send failed:port not open");
+        emit errorOccurred("send failed:port not open");
         return false;
 
     }
@@ -69,7 +69,7 @@ bool SerialDevice::send(quint8 msgTpye,quint8 flags,const QByteArray& payload )
 
     if(frame.isEmpty())
     {
-        emit errorQccurred("send failed: encodeFrame returned empty");
+        emit errorOccurred("send failed: encodeFrame returned empty");
         return false;
 
     }
@@ -77,7 +77,7 @@ bool SerialDevice::send(quint8 msgTpye,quint8 flags,const QByteArray& payload )
     if(written<0)
     {
         //emit触发信号槽的信号
-        emit errorQccurred("write failed"+m_port.errorString());
+        emit errorOccurred("write failed"+m_port.errorString());
         return false;
     }
 
@@ -87,7 +87,7 @@ bool SerialDevice::send(quint8 msgTpye,quint8 flags,const QByteArray& payload )
 void SerialDevice::setupConnections()
 {
      // 串口收到字节 -> 喂给 FrameCodec
-   // connect的第一个参数是信号发送者，第二个是要监听的信号，第三个是信号监听者，第四个要执行的槽函数
+    // connect的第一个参数是信号发送者，第二个是要监听的信号，第三个是信号监听者，第四个要执行的槽函数
     // [this]：Lambda 的 “捕获列表”，表示捕获当前类的 this 指针，这样在 Lambda 内部才能访问 m_port、m_codec 这些成员变量；
     connect(&m_port,&QSerialPort::readyRead,this,[this](){
          const QByteArray bytes =m_port.readAll();
@@ -100,7 +100,7 @@ void SerialDevice::setupConnections()
     });
     connect(&m_port,&QSerialPort::errorOccurred,this,[this](QSerialPort::SerialPortError e){
         if(e==QSerialPort::NoError) return;
-        emit errorQccurred("serial error:"+m_port.errorString());
+        emit errorOccurred("serial error:"+m_port.errorString());
     });
 }
 

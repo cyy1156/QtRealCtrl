@@ -15,7 +15,7 @@ public:
 signals:
     void opened();
     void closed();
-    void errorQccurred(QString message);
+    void errorOccurred(QString message);
 
     //同一向上抛完整的一帧
     void frameReceived(quint8 msgType,quint16 seq,QByteArray payload);

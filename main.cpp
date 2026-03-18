@@ -4,7 +4,7 @@
 #include <QApplication>
 #include<QBuffer>
 #include<QDebug>
-#include "protocol/sysform.h"
+#include "DcsProtocol/sysform.h"
 #include "protocol/framecodec.h"
 #include "protocol/tlvcodec.h"
 #include "device/serialdevice.h"
@@ -35,8 +35,8 @@ static QByteArray corruptLastCrcByte(QByteArray frame)
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    //MainWindow w;
-    //w.show();
+    MainWindow w;
+    w.show();
 
 
     /*SysForm from;
@@ -204,15 +204,15 @@ int main(int argc, char *argv[])
     QByteArray frame2 = codec.encodeFrame(static_cast<quint8>(MsgType::Set_TARGET), FLAG_NEED_ACK, 2, testPay);
     codec.feedBytes(frame2);
 */
-
+/*
     SerialDevice devA;
     SerialDevice devB;
     devA.setPortName("COM5");
     devB.setPortName("COM6");
-    QObject::connect(&devA,&SerialDevice::errorQccurred,[](const QString& m){
+    QObject::connect(&devA,&SerialDevice::errorOccurred,[](const QString& m){
         qDebug()<<"[A error]"<<m;
     });
-    QObject::connect(&devB,&SerialDevice::errorQccurred,[](const QString& m){
+    QObject::connect(&devB,&SerialDevice::errorOccurred,[](const QString& m){
         qDebug()<<"[B error]"<<m;
     });
     QObject::connect(&devB,&SerialDevice::frameReceived,[](quint8 msgType,quint16 seq,QByteArray payload){
@@ -250,6 +250,6 @@ int main(int argc, char *argv[])
         return a.exec();
     });
 
-
+*/
     return a.exec();
 }

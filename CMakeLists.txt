@@ -23,13 +23,18 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(RealCtrl
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        protocol/dcsprotocoltypes.h protocol/dcsprotocoltypes.cpp
-        protocol/ctrlmode.h protocol/ctrlmode.cpp
-        protocol/sysform.h protocol/sysform.cpp
+        DcsProtocol/DcsProtocolTypes.h DcsProtocol/dcsprotocoltypes.cpp
+        DcsProtocol/ctrlmode.h         DcsProtocol/ctrlmode.cpp
+        DcsProtocol/sysform.h          DcsProtocol/sysform.cpp
         protocol/framecodec.h protocol/framecodec.cpp
         protocol/tlvcodec.h protocol/tlvcodec.cpp
         device/DeviceInterface.h
         device/serialdevice.h device/serialdevice.cpp
+        core/Sysinfo.h
+        core/ControlManager.h core/ControlManager.cpp
+        device/fakedevice.h device/fakedevice.cpp
+
+
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET RealCtrl APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -60,6 +65,8 @@ target_include_directories(RealCtrl PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/ui
     ${CMAKE_CURRENT_SOURCE_DIR}/protocol
     ${CMAKE_CURRENT_SOURCE_DIR}/device
+    ${CMAKE_CURRENT_SOURCE_DIR}/DcsProtocol
+    ${CMAKE_CURRENT_SOURCE_DIR}/core
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

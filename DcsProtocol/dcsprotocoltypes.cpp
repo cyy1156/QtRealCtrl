@@ -37,4 +37,4 @@ void ParaNode::writeToStream(QDataStream& out) const
 {
     out<<name<<dataType<<value<<archiveMode;
 }
-DcsProtocolTypes::DcsProtocolTypes() {}
+//DcsProtocolTypes::DcsProtocolTypes() {}
