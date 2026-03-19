@@ -2,6 +2,7 @@
 #include "./ui_mainwindow.h"
 #include <QDateTime>
 #include <QTimer>
+#include <algorithm/pidalgorithm.h>
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -13,7 +14,8 @@ MainWindow::MainWindow(QWidget *parent)
      m_pcDev=new SerialDevice(this);
      m_fake =new FakeDevice(this);
      m_sys=new SysInfo(this);
-     m_ctrl =new ControlManager(m_pcDev,m_sys,this);
+     m_alg=new PIDAlgorithm();
+     m_ctrl =new ControlManager(m_pcDev,m_sys,m_alg,this);
      connect(m_clockTimer,&QTimer::timeout,this,[this](){
          ui->m_time->setText(QDateTime::currentDateTime().toString("hh:mm:ss"));
      });
@@ -23,10 +25,16 @@ MainWindow::MainWindow(QWidget *parent)
 
     m_fake->setPortName("COM6");
     m_pcDev->open();
-    m_fake->open();
+    qDebug() << "PC port open =" << m_pcDev->isOpen();
+    m_fake->open();//注销这个可以在串口助手看到COM5给COM6发送的信息
+    /*
+[22:00:41.748]收←◆55 AA 01 10 00 01 00 08 00 01 00 04 00 00 00 20 41 4E D3
+[22:00:41.810]收←◆55 AA 01 10 00 02 00 08 00 01 00 04 00 00 00 20 41 D1 D6
+[22:00:41.863]收←◆55 AA 01 10 00 03 00 08 00 01 00 04 00 00 00 20 41 A4 D5
+[22:00:41.927]收←◆55 AA 01 10 00 04 00 08 00 01 00 04 00 00 00 20 41 EF DD  */
     //UI:开始
     connect(ui->btnStart,&QPushButton::clicked,this,[this](){
-        m_sys->setTargetValue(10.0);
+        m_sys->setTargetValue(100.0);
         m_ctrl->start()
 ;    });
     //UI:停止

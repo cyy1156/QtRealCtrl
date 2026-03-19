@@ -3,7 +3,9 @@
 #include <QByteArray>
 #include "protocol/framecodec.h"
 #include "protocol/tlvcodec.h"
-ControlManager::ControlManager(SerialDevice* dev,SysInfo* sys,QObject *parent)
+#include "algorithm/pidalgorithm.h"
+#include "algorithm/IAlgorithm.h"
+ControlManager::ControlManager(SerialDevice* dev,SysInfo* sys,IAlgorithm* alg,QObject *parent)
     : QObject(parent),m_dev(dev),m_sys(sys)
 {
     Q_ASSERT(m_dev);//断言宏检查指针是否为空
@@ -15,6 +17,7 @@ ControlManager::ControlManager(SerialDevice* dev,SysInfo* sys,QObject *parent)
     connect(&m_timer,&QTimer::timeout,this,[this](){
         runStep();
     });
+    m_alg=alg;
 }
 void ControlManager::start()
 {
@@ -66,6 +69,10 @@ void ControlManager::runStep()
     {
         qWarning()<<"send SET_TARGET failed";
     }
+    double u=m_alg->compute(m_sys->targetValue(),m_sys->currentValue(),0.05);
+    qDebug()<<"[Cntrol] alg="<<m_alg->name()
+             <<"target="<<m_sys->targetValue()<<"current="<<m_sys->currentValue()<<"u="<<u;
+
 }
 
 

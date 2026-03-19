@@ -6,11 +6,16 @@
 #include <QByteArray>
 #include "core/Sysinfo.h"
 #include "device/serialdevice.h"
+#include "algorithm/IAlgorithm.h"
 class ControlManager : public QObject
 {
+
     Q_OBJECT
 public:
-    explicit ControlManager(SerialDevice* dev, SysInfo* sys,QObject *parent = nullptr);
+    explicit ControlManager(SerialDevice* dev,
+                            SysInfo* sys,
+                            IAlgorithm* alg,
+                            QObject *parent = nullptr);
     void start();
     void stop();
     bool isRunning() const {return m_timer.isActive();}
@@ -23,6 +28,7 @@ private:
     SerialDevice* m_dev=nullptr;
     SysInfo* m_sys =nullptr;
     QTimer m_timer;
+    IAlgorithm* m_alg=nullptr;
 
 };
 

@@ -5,7 +5,7 @@
 FakeDevice::FakeDevice(QObject *parent)
     : QObject{parent}
 {
-    connect(&m_dev,&SerialDevice::frameReceived,this,[this](quint8 t,quint16 s,QByteArray p){
+        connect(&m_dev,&SerialDevice::frameReceived,this,[this](quint8 t,quint16 s,QByteArray p){
         onFrame(t,s,p);
         m_timer.setInterval(50);//设置时间
         connect(&m_timer,&QTimer::timeout,this,[this](){tick();});

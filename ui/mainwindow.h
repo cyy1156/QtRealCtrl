@@ -6,6 +6,7 @@
 #include "core/controlmanager.h"
 #include <QMainWindow>
 #include <QTimer>
+#include "algorithm/IAlgorithm.h"
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
@@ -28,5 +29,6 @@ private:
     FakeDevice* m_fake ;
     SysInfo* m_sys;
     ControlManager* m_ctrl ;
+    IAlgorithm* m_alg=nullptr;
 };
 #endif // MAINWINDOW_H

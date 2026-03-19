@@ -646,3 +646,89 @@ ControlManager → SysInfo / 设定值
 ---
 
 *文档路径：`RealCtrl/上位机软件设计说明书SDS.md`*
+
+---
+
+## 七、当前实现进度与后续计划（2026-03 更新）
+
+### 7.1 已完成的实现
+
+1. **FrameCodec（阶段 4.1）**
+   - 按 2.2 节帧结构完成 `FrameCodec` 类：
+     - SOF(0x55 0xAA) + Version + MsgType + Flags + Seq + PayloadLen + Payload + CRC16。
+     - 小端序，实现 CRC16-CCITT（多项式 0x1021，初始值 0xFFFF）。
+   - `feedBytes()` 支持半包/粘包处理，CRC 校验失败的帧自动丢弃。
+   - 已在 `com0com` 虚拟串口环境下完成半包、粘包、CRC 错帧等场景测试。
+
+2. **TLV 基础版（阶段 4.2 的子集）**
+   - 实现 `Tlvcodec`，采用简化 TLV 结构：`Type(u16) + Length(u16) + Value`。
+   - 提供：
+     - `encodeItems/decodeItems`：`QVector<TlvItem>` ↔ `QByteArray payload`。
+     - 基础类型封装与读取：`appendFloat/appendUInt8/appendString`、`tryGetFloat/tryGetUInt8/tryGetString`。
+   - 已用于构造/解析 `SET_PARAMS/SET_TARGET/TELEMETRY` 中的示例字段（如 `TextMessage`、`Mode` 等），验证正确性。
+
+3. **设备抽象与串口封装（阶段 4.3）**
+   - 定义 `DeviceInterface` 抽象基类，统一设备接口：
+     - `open()/close()/isOpen()`。
+     - 信号：`opened/closed/errorOccurred/frameReceived`。
+   - 实现 `SerialDevice`：
+     - 封装 `QSerialPort` 打开/关闭、错误处理。
+     - 内部集成 `FrameCodec`，`readyRead` 时自动喂给解帧逻辑。
+     - 对外仅暴露 `send(msgType, flags, payload)` 和 `frameReceived` 信号，实现串口与帧协议解耦。
+   - 使用 `com0com`（COM5 ↔ COM6）完成实际串口层联调。
+
+4. **虚拟设备 FakeDevice（用于无硬件时的闭环验证）**
+   - 在 `device/FakeDevice` 中：
+     - 内部持有一个 `SerialDevice`（设备端）。
+     - 收到 `SET_TARGET(0x10)` 时，解析 TLV(TargetPosition) 更新内部目标值 `m_target`。
+     - 50ms 定时器周期执行：`m_current += (m_target - m_current) * 0.2`，并将 `m_current` 作为 `FeedbackPosition` 打包为 `TELEMETRY(0x20)` 回传上位机。
+   - 实现了在没有真实硬件的情况下，模拟设备侧控制响应与遥测上报。
+
+5. **SysInfo 与 ControlManager（阶段 4.4 基础版）**
+   - `SysInfo`：
+     - 维护 `currentValue/targetValue/mode`，任一字段变化时发射 `changed()` 信号。
+   - `ControlManager`：
+     - 构造函数中连接 `SerialDevice::frameReceived`，解析不同 `MsgType`。
+     - 通过 `QTimer(50ms)` 的 `runStep()` 周期性发送 `SET_TARGET` 帧：
+       - 从 `SysInfo::targetValue` 构造 TLV(TargetPosition)。
+     - 收到 `TELEMETRY(0x20)` 时，解析 TLV(FeedbackPosition/Mode)，回写 `SysInfo`，形成完整的数据闭环。
+
+6. **MainWindow UI 集成**
+   - 利用现有 UI 布局（左侧控制面板 + 顶部状态栏）完成与控制层的集成：
+     - `btnStart`：设定目标值（当前为固定 10.0，用于测试）并调用 `ControlManager::start()`。
+     - `btnStop`：调用 `ControlManager::stop()`，停止控制循环。
+     - `btnClear`：停止控制循环并将 `SysInfo` 中的 `targetValue/currentValue` 清零。
+   - 顶部显示栏：
+     - `m_setting` 显示当前设定值（由 `SysInfo::targetValue` 驱动）。
+     - `label_4` 显示当前值（由 `SysInfo::currentValue` 驱动）。
+     - `m_time` 由独立 `QTimer` 每秒刷新系统时间。
+   - 在 `SerialDevice(COM5)` + `FakeDevice(COM6)` 环境下，点击“开始”后，UI 上的“当前值”可以随时间逐渐逼近设定值，验证了串口协议、TLV 编解码、控制循环与 UI 刷新整个链路的正确性。
+
+### 7.2 后续计划（与旧 MFC 算法工程的衔接）
+
+1. **抽象算法接口（IAlgorithm）**
+   - 在 `algorithm/` 目录创建 `IAlgorithm` 接口：
+     - `double compute(double target, double current);`
+     - `void setParameters(const QVariantMap& params);`
+   - `ControlManager` 中增加 `IAlgorithm* currentAlgorithm` 成员，并在 `runStep()` 中改为：
+     - 从 `SysInfo` 读取 `target/current`。
+     - 调用 `currentAlgorithm->compute(target, current)` 得到控制量。
+     - 将控制量编码为 TLV/帧发送给设备（后续与旧工程保持一致）。
+
+2. **迁移和封装旧工程中的算法实现**
+   - 从 `realctrl - 副本 (2)` 中提取纯算法逻辑（如 PID/MPC），改写为实现 `IAlgorithm` 的子类：
+     - `PIDAlgorithm`、`MPCAlgorithm` 等。
+   - UI 侧通过 `AlgComboBox` 选择不同算法，`ControlManager` 动态切换 `currentAlgorithm`。
+
+3. **参数表（SysForm + ParaNode）驱动 UI 与协议（对应 SDS 552–555）**
+   - 为 `ParaNode` 增加 `tag/id` 字段或建立 name→tag 映射：
+     - 用于 TLV 中的 Tag(u16) 编码。
+   - 实现 `SysForm` 与 TLV 的自动映射模块：
+     - `encodeFromSysForm(const SysForm&) -> QByteArray payload`。
+     - `applyToSysForm(SysForm&, const QByteArray& payload)`。
+   - 基于 `setValueList(ParaNode 列表)` 动态生成参数面板 UI（FormLayout 或 TableWidget），实现“参数新增/修改只需改 SysForm，不需改 UI 和协议代码”的目标。
+
+4. **与真实设备联调替换 FakeDevice**
+   - 在真实串口设备就绪后，将 `FakeDevice` 替换为真实设备：
+     - 复用现有 `SerialDevice + FrameCodec + Tlvcodec + ControlManager + SysInfo + UI` 结构。
+   - 增强 ACK/重发策略、错误处理、故障显示等工程化特性。
