@@ -35,6 +35,11 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         device/fakedevice.h device/fakedevice.cpp
         algorithm/IAlgorithm.h
         algorithm/pidalgorithm.h algorithm/pidalgorithm.cpp
+        schema/paranode.h schema/paranode.cpp
+        schema/appsysform.h schema/appsysform.cpp
+        schema/paratlvcodec.h schema/paratlvcodec.cpp
+        schema/sysformtlvmapper.h schema/sysformtlvmapper.cpp
+        schema/schema_selftest.h schema/schema_selftest.cpp
 
 
     )
@@ -70,6 +75,7 @@ target_include_directories(RealCtrl PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/DcsProtocol
     ${CMAKE_CURRENT_SOURCE_DIR}/core
     ${CMAKE_CURRENT_SOURCE_DIR}/algorithm
+    ${CMAKE_CURRENT_SOURCE_DIR}/schema
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

@@ -28,7 +28,7 @@ double PIDAlgorithm::compute(double target ,double current,double dtSec)
 }
 void PIDAlgorithm::setParameters(const QVariantMap& params)
 {
-    m_kp=getDouble(params,"Kp",m_kd);
+    m_kp=getDouble(params,"Kp",m_kp);
     m_kp=getDouble(params,"Ki",m_ki);
     m_kd=getDouble(params,"Kd",m_kd);
 
@@ -51,7 +51,7 @@ void PIDAlgorithm::reset()
 }
 PIDAlgorithm::PIDAlgorithm()
 {
-    setParameters({{"Kp",1.0},{"Ki",0.2},{"Kd",0.0}});
+   // setParameters({{"Kp",1.0},{"Ki",0.2},{"Kd",0.0}});
 }
 
 

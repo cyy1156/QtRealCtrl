@@ -60,6 +60,14 @@ void ControlManager::onFrame(quint8 msgType,quint16 seq,QByteArray payload)
 }
 void ControlManager::runStep()
 {
+    if(!m_alg)
+    {
+        qWarning()<<"runStep: algorithm is null";
+        return;
+    }
+    const double target =m_sys->targetValue();
+    const double current =m_sys->currentValue();
+    const double deSec =0.05;//50ms
     QVector<TlvItem> items;
     Tlvcodec::appendFloat(items,TlvType::TargetPosition,static_cast<float>(m_sys->targetValue()));
 
@@ -69,12 +77,23 @@ void ControlManager::runStep()
     {
         qWarning()<<"send SET_TARGET failed";
     }
-    double u=m_alg->compute(m_sys->targetValue(),m_sys->currentValue(),0.05);
+    double u=m_alg->compute(m_sys->targetValue(),m_sys->currentValue(),deSec);
     qDebug()<<"[Cntrol] alg="<<m_alg->name()
-             <<"target="<<m_sys->targetValue()<<"current="<<m_sys->currentValue()<<"u="<<u;
+             <<"target="<<target<<"current="<<current<<"u="<<u;
 
 }
-
+void ControlManager::setAlgorithm(IAlgorithm* alg)
+{
+    if(alg==nullptr)
+    {
+        qWarning()<<"setAlgorithm failed: alg is null";
+        return;
+    }
+    if(m_alg==alg) return;
+    m_alg=alg;
+    m_alg->reset();
+    qDebug()<<"[Control] swich algorithm to"<<m_alg->name();
+}
 
 
 

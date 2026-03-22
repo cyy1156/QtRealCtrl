@@ -1,4 +1,5 @@
 #include "ui/mainwindow.h"
+#include "schema_selftest.h"
 #include <QSerialPort>
 #include <QTimer>
 #include <QApplication>
@@ -35,6 +36,17 @@ static QByteArray corruptLastCrcByte(QByteArray frame)
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+    // schema：ParaNode / AppSysForm / TLV 映射自测（不需要串口）。测完可注释掉本段。
+    {
+        QString schemaReport;
+        if (!runSchemaSelfTest(&schemaReport)) {
+            qCritical() << schemaReport;
+            // 需要「测试失败即退出」时取消下面一行注释：
+            // return 1;
+        }
+    }
+
     MainWindow w;
     w.show();
 

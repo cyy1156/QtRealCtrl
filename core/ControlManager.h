@@ -20,6 +20,8 @@ public:
     void stop();
     bool isRunning() const {return m_timer.isActive();}
     void setTarget(double target);
+    void setAlgorithm(IAlgorithm* alg);
+    IAlgorithm* algorithm() const {return m_alg;}
 private:
     void onFrame(quint8 msgType,quint16 seq,QByteArray payload);//主控端接收设备的 “回信”
     void runStep();//主控端主动给设备发指令：

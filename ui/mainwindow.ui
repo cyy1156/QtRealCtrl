@@ -369,16 +369,6 @@ QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
               <string>设置串口</string>
              </property>
             </widget>
-            <widget class="QFontComboBox" name="AlgComboBox">
-             <property name="geometry">
-              <rect>
-               <x>20</x>
-               <y>320</y>
-               <width>121</width>
-               <height>51</height>
-              </rect>
-             </property>
-            </widget>
             <widget class="QPushButton" name="btnSave">
              <property name="geometry">
               <rect>
@@ -411,6 +401,22 @@ QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
              </property>
              <property name="text">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:16pt;&quot;&gt;控制面板&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+            </widget>
+            <widget class="QComboBox" name="comboBox_Alg">
+             <property name="geometry">
+              <rect>
+               <x>20</x>
+               <y>320</y>
+               <width>121</width>
+               <height>51</height>
+              </rect>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>18</pointsize>
+               <bold>true</bold>
+              </font>
              </property>
             </widget>
            </widget>
@@ -603,7 +609,7 @@ QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
                   </property>
                  </widget>
                 </widget>
-                <widget class="QFontComboBox" name="ModelComboBox">
+                <widget class="QComboBox" name="comboBox_Mode">
                  <property name="geometry">
                   <rect>
                    <x>0</x>
@@ -611,9 +617,6 @@ QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
                    <width>241</width>
                    <height>51</height>
                   </rect>
-                 </property>
-                 <property name="styleSheet">
-                  <string notr="true">background-color: rgb(255, 255, 255); border: 1px solid black;</string>
                  </property>
                 </widget>
                </widget>
