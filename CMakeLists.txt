@@ -9,8 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets SerialPort)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets SerialPort)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets SerialPort PrintSupport)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets SerialPort PrintSupport)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -32,6 +32,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         device/serialdevice.h device/serialdevice.cpp
         core/Sysinfo.h
         core/ControlManager.h core/ControlManager.cpp
+        core/DataBuffer.h core/DataBuffer.cpp
+        core/LogWorker.h core/LogWorker.cpp
         device/fakedevice.h device/fakedevice.cpp
         algorithm/IAlgorithm.h
         algorithm/pidalgorithm.h algorithm/pidalgorithm.cpp
@@ -40,6 +42,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         schema/paratlvcodec.h schema/paratlvcodec.cpp
         schema/sysformtlvmapper.h schema/sysformtlvmapper.cpp
         schema/schema_selftest.h schema/schema_selftest.cpp
+        QCustomPlot/qcustomplot.cpp QCustomPlot/qcustomplot.h
 
 
     )
@@ -65,7 +68,14 @@ target_link_libraries(RealCtrl PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::SerialPort
+    Qt${QT_VERSION_MAJOR}::PrintSupport
 )
+
+# 中文注释：MinGW 下编译 qcustomplot.cpp（尤其 Debug）可能出现 "file too big/too many sections"，
+# 这里加 -Wa,-mbig-obj 扩大目标文件节容量，避免汇编阶段失败。
+if(MINGW)
+    target_compile_options(RealCtrl PRIVATE -Wa,-mbig-obj)
+endif()
 
 target_include_directories(RealCtrl PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -76,6 +86,7 @@ target_include_directories(RealCtrl PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/core
     ${CMAKE_CURRENT_SOURCE_DIR}/algorithm
     ${CMAKE_CURRENT_SOURCE_DIR}/schema
+    ${CMAKE_CURRENT_SOURCE_DIR}/QCustomPlot
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

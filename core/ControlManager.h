@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QByteArray>
 #include "core/Sysinfo.h"
+#include "core/DataBuffer.h"
 #include "device/serialdevice.h"
 #include "algorithm/IAlgorithm.h"
 class ControlManager : public QObject
@@ -16,8 +17,11 @@ public:
                             SysInfo* sys,
                             IAlgorithm* alg,
                             QObject *parent = nullptr);
+    bool sendEnable(quint8 enable);
     void start();
     void stop();
+    // 中文注释：清零控制状态与设备状态（用于“清除”按钮）
+    void clear();
     bool isRunning() const {return m_timer.isActive();}
     void setTarget(double target);
     void setAlgorithm(IAlgorithm* alg);
@@ -31,6 +35,15 @@ private:
     SysInfo* m_sys =nullptr;
     QTimer m_timer;
     IAlgorithm* m_alg=nullptr;
+
+    // 中文注释：控制计算直接使用最近一次遥测缓存，避免同线程事件顺序导致“读到旧 current=0”
+    double m_cachedCurrent = 0.0;
+    bool m_haveCachedCurrent = false;
+    double m_lastControlOutput = 0.0; // 中文注释：缓存最近一次控制输出，供 Sample 打包到日志线程
+
+signals:
+    // 中文注释：把 TELEMETRY 解析后的样本发给日志线程（线程 3）
+    void telemetrySampleReady(const Sample &sample);
 
 };
 

@@ -21,6 +21,7 @@ private:
     QTimer m_timer;
 
     float m_target=0.0f;
+    float m_torqueCmd=0.0f;
     float m_current=0.0f;
 };
 

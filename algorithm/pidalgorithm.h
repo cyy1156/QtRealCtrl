@@ -18,6 +18,8 @@ private:
     double m_kp=0;
     double m_ki=0;
     double m_kd=0;
+    // 中文注释：输出限幅（对齐 SDS 的 MaxOutput，<=0 表示不做限幅）
+    double m_maxOutput=0.0;
 
     double m_integral=0.0;
     double m_prevError=0.0;//保存当前误差，作为下一次计算微分的 “上一次误差”

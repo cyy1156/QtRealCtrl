@@ -1,4 +1,5 @@
 #include "pidalgorithm.h"
+#include <algorithm>
 
 static double getDouble(const QVariantMap& m,const char* key,double def)
 {
@@ -24,13 +25,20 @@ double PIDAlgorithm::compute(double target ,double current,double dtSec)
     m_hasPrev=true;
 
     const double u=m_kp*err+m_ki*m_integral+m_kd*deriv;
+    // 中文注释：输出限幅，避免控制量过大导致振荡/发散
+    if(m_maxOutput > 0.0)
+    {
+        return std::clamp(u, -m_maxOutput, m_maxOutput);
+    }
     return u;
 }
 void PIDAlgorithm::setParameters(const QVariantMap& params)
 {
     m_kp=getDouble(params,"Kp",m_kp);
-    m_kp=getDouble(params,"Ki",m_ki);
+    m_ki=getDouble(params,"Ki",m_ki);
     m_kd=getDouble(params,"Kd",m_kd);
+    // 中文注释：MaxOutput（SDS 输出限幅），<=0 表示不启用限幅
+    m_maxOutput=getDouble(params,"MaxOutput",m_maxOutput);
 
 }
 QVariantMap PIDAlgorithm::parameters()const
@@ -39,6 +47,7 @@ QVariantMap PIDAlgorithm::parameters()const
         {"Kp",m_kp},
         {"Ki",m_ki},
         {"Kd",m_kd},
+        {"MaxOutput",m_maxOutput},
 
         };
 

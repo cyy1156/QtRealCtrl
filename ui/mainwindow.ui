@@ -510,9 +510,9 @@ QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
                  <widget class="QLabel" name="m_setting">
                   <property name="geometry">
                    <rect>
-                    <x>110</x>
+                    <x>90</x>
                     <y>10</y>
-                    <width>118</width>
+                    <width>95</width>
                     <height>27</height>
                    </rect>
                   </property>
@@ -528,7 +528,7 @@ QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
                  <widget class="QLabel" name="TimeLable">
                   <property name="geometry">
                    <rect>
-                    <x>260</x>
+                    <x>200</x>
                     <y>10</y>
                     <width>60</width>
                     <height>25</height>
@@ -541,9 +541,9 @@ QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
                  <widget class="QLabel" name="m_time">
                   <property name="geometry">
                    <rect>
-                    <x>320</x>
+                    <x>255</x>
                     <y>10</y>
-                    <width>121</width>
+                    <width>120</width>
                     <height>31</height>
                    </rect>
                   </property>
@@ -562,9 +562,9 @@ QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
                  <widget class="QLabel" name="Curlabel">
                   <property name="geometry">
                    <rect>
-                    <x>510</x>
+                    <x>400</x>
                     <y>10</y>
-                    <width>80</width>
+                    <width>70</width>
                     <height>25</height>
                    </rect>
                   </property>
@@ -575,9 +575,9 @@ QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
                  <widget class="QLabel" name="m_cur">
                   <property name="geometry">
                    <rect>
-                    <x>590</x>
+                    <x>470</x>
                     <y>10</y>
-                    <width>119</width>
+                    <width>95</width>
                     <height>31</height>
                    </rect>
                   </property>
@@ -593,9 +593,9 @@ QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
                  <widget class="QLabel" name="Setinglabel">
                   <property name="geometry">
                    <rect>
-                    <x>40</x>
+                    <x>20</x>
                     <y>10</y>
-                    <width>71</width>
+                    <width>70</width>
                     <height>31</height>
                    </rect>
                   </property>
@@ -606,6 +606,37 @@ QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
                   </property>
                   <property name="text">
                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:12pt; font-weight:700;&quot;&gt;设定值：&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;&lt;br/&gt;&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  </property>
+                 </widget>
+                 <widget class="QLabel" name="CtrlValueLabel">
+                  <property name="geometry">
+                   <rect>
+                    <x>585</x>
+                    <y>10</y>
+                    <width>70</width>
+                    <height>25</height>
+                   </rect>
+                  </property>
+                  <property name="text">
+                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; font-weight:700;&quot;&gt;控制值：&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  </property>
+                 </widget>
+                 <widget class="QLabel" name="m_ctrlValue">
+                  <property name="geometry">
+                   <rect>
+                    <x>655</x>
+                    <y>10</y>
+                    <width>105</width>
+                    <height>31</height>
+                   </rect>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <pointsize>16</pointsize>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>0</string>
                   </property>
                  </widget>
                 </widget>

@@ -3,6 +3,9 @@
 SerialDevice::SerialDevice(QObject *parent)
     : DeviceInterface{parent}
 {
+    // 中文注释：为了支持 moveToThread，把 QObject 成员也挂到当前对象树中
+    m_port.setParent(this);
+    m_codec.setParent(this);
     setupConnections();
 }
 
