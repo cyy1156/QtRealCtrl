@@ -6,6 +6,9 @@
 #include <cmath>
 #include <limits>
 #include <QDateTime>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(lcControl, "Control")
 ControlManager::ControlManager(SerialDevice* dev,SysInfo* sys,IAlgorithm* alg,QObject *parent)
     : QObject(parent),m_dev(dev),m_sys(sys)
 {
@@ -34,13 +37,13 @@ void ControlManager::start()
 {
     if(!m_dev->isOpen())
     {
-        qWarning()<<"ControlManger start failed: device not open";
+        qCWarning(lcControl) << "ControlManger start failed: device not open";
         return;
     }
     // 中文注释：先下发“使能=1”，再启动控制周期，避免设备未使能就开始计算
     if(!sendEnable(1))
     {
-        qWarning()<<"send CONTROL_CMD(enable=1) failed";
+        qCWarning(lcControl) << "send CONTROL_CMD(enable=1) failed";
     }
     if(!m_timer.isActive()) m_timer.start();
 }
@@ -49,7 +52,7 @@ void ControlManager::stop()
     // 中文注释：停止时先下发“使能=0”，让设备立即退出执行态
     if(!sendEnable(0))
     {
-        qWarning()<<"send CONTROL_CMD(enable=0) failed";
+        qCWarning(lcControl) << "send CONTROL_CMD(enable=0) failed";
     }
     if(m_timer.isActive()) m_timer.stop();
 }
@@ -61,7 +64,7 @@ void ControlManager::clear()
     // 中文注释：约定 Enable=2 表示“清零命令”（FakeDevice 会把 current/target/u 清零）
     if(!sendEnable(2))
     {
-        qWarning()<<"send CONTROL_CMD(enable=2 clear) failed";
+        qCWarning(lcControl) << "send CONTROL_CMD(enable=2 clear) failed";
     }
 
     // 中文注释：控制侧本地状态也同步归零，避免下一拍继续沿用旧控制输出
@@ -95,7 +98,7 @@ void ControlManager::onFrame(quint8 msgType,quint16 seq,QByteArray payload)
 
             // 中文注释：为避免刷屏，只在反馈位置明显变化时打印
             if (std::isnan(lastFb) || std::fabs(fb - lastFb) > 1e-3) {
-                qDebug() << "PC:SetCurrentValue=" << fb;
+                qCInfo(lcControl) << "PC:SetCurrentValue=" << fb;
                 lastFb = fb;
             }
         }
@@ -106,7 +109,7 @@ void ControlManager::onFrame(quint8 msgType,quint16 seq,QByteArray payload)
 
             // 中文注释：同样只在模式变化时打印
             if (mode != lastMode) {
-                qDebug() << "PC: SetMode=" << mode;
+                qCInfo(lcControl) << "PC: SetMode=" << mode;
                 lastMode = mode;
             }
         }
@@ -133,14 +136,14 @@ void ControlManager::runStep()
 {
     if(!m_alg)
     {
-        qWarning()<<"runStep: algorithm is null";
+        qCWarning(lcControl) << "runStep: algorithm is null";
         return;
     }
     const double target =m_sys->targetValue();
     // 中文注释：控制计算使用缓存的最近遥测值，避免同线程事件顺序导致读取到旧 current
     if(!m_haveCachedCurrent)
     {
-        qDebug()<<"[Control] waiting first TELEMETRY ...";
+        qCInfo(lcControl) << "waiting first TELEMETRY ...";
         return;
     }
     const double currentUsed = m_cachedCurrent;
@@ -157,25 +160,25 @@ void ControlManager::runStep()
     const bool ok =m_dev->send(static_cast<quint8>(MsgType::Set_TARGET),0,payload);
     if(!ok)
     {
-        qWarning()<<"send SET_TARGET failed";
+        qCWarning(lcControl) << "send SET_TARGET failed";
     }
-    qDebug()<<"[Control] alg="<<m_alg->name()
-             <<"target="<<target
-             <<"currentUsed="<<currentUsed
-             <<"u="<<u;
+    qCDebug(lcControl) << "alg=" << m_alg->name()
+                       << "target=" << target
+                       << "currentUsed=" << currentUsed
+                       << "u=" << u;
 
 }
 void ControlManager::setAlgorithm(IAlgorithm* alg)
 {
     if(alg==nullptr)
     {
-        qWarning()<<"setAlgorithm failed: alg is null";
+        qCWarning(lcControl) << "setAlgorithm failed: alg is null";
         return;
     }
     if(m_alg==alg) return;
     m_alg=alg;
     m_alg->reset();
-    qDebug()<<"[Control] swich algorithm to"<<m_alg->name();
+    qCInfo(lcControl) << "switch algorithm to" << m_alg->name();
 }
 
 

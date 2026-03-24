@@ -6,6 +6,16 @@
 #include <QSerialPort>
 #include "DeviceInterface.h"
 
+struct SerialPortConfig
+{
+    QString portName;
+    qint32 baudRate = 115200;
+    QSerialPort::DataBits dataBits = QSerialPort::Data8;
+    QSerialPort::Parity parity = QSerialPort::NoParity;
+    QSerialPort::StopBits stopBits = QSerialPort::OneStop;
+    QSerialPort::FlowControl flowControl = QSerialPort::NoFlowControl;
+};
+
 class SerialDevice : public DeviceInterface
 {
     Q_OBJECT
@@ -14,6 +24,8 @@ public:
 
     void setPortName(const QString& name);
     void setBaudRate(quint32 baud);//设置波特率
+    void setConfig(const SerialPortConfig& cfg);
+    SerialPortConfig config() const;
 
 
     bool open() override;
@@ -25,8 +37,7 @@ public:
 private:
     void setupConnections();
 private:
-    QString m_portName;
-    quint32 m_baud =115200;
+    SerialPortConfig m_cfg;
 
     QSerialPort m_port; //串口
     FrameCodec m_codec; //一帧包

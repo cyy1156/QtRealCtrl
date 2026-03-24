@@ -52,6 +52,28 @@ QVariantMap PIDAlgorithm::parameters()const
         };
 
 }
+QList<AlgorithmParamDef> PIDAlgorithm::parameterSchema() const
+{
+    return {
+        {"Kp", "比例 Kp", "基础参数", false, -1000.0, 1000.0, 0.1, 3},
+        {"Ki", "积分 Ki", "基础参数", false, -1000.0, 1000.0, 0.01, 4},
+        {"Kd", "微分 Kd", "基础参数", false, -1000.0, 1000.0, 0.01, 4},
+        {"MaxOutput", "输出限幅", "高级参数", false, 0.0, 10000.0, 1.0, 3}
+    };
+}
+bool PIDAlgorithm::predictNextFeedback(double target,
+                                       double current,
+                                       double controlOutput,
+                                       double dtSec,
+                                       double& predictedNext)
+{
+    Q_UNUSED(dtSec);
+    // 中文注释：纯软件仿真默认使用与 FakeDevice 一致的对象模型，便于与串口仿真结果对齐
+    predictedNext = current
+                    + (target - current) * 0.08
+                    + controlOutput * 0.02;
+    return true;
+}
 void PIDAlgorithm::reset()
 {
     m_integral=0.0;

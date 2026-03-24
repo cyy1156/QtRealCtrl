@@ -11,12 +11,22 @@ SerialDevice::SerialDevice(QObject *parent)
 
 void SerialDevice::setPortName(const QString& name)
 {
-    m_portName=name;
+    m_cfg.portName = name;
 }
 
 void SerialDevice::setBaudRate(quint32 baud)
 {
-    m_baud=baud;
+    m_cfg.baudRate = static_cast<qint32>(baud);
+}
+
+void SerialDevice::setConfig(const SerialPortConfig& cfg)
+{
+    m_cfg = cfg;
+}
+
+SerialPortConfig SerialDevice::config() const
+{
+    return m_cfg;
 }
 bool SerialDevice::isOpen() const
 {
@@ -24,7 +34,7 @@ bool SerialDevice::isOpen() const
 }
 bool SerialDevice::open()
 {
-    if(m_portName.isEmpty())
+    if(m_cfg.portName.isEmpty())
     {
         emit errorOccurred("SerialDevice:portName is empty");
         return false;
@@ -33,12 +43,12 @@ bool SerialDevice::open()
     {
         return true;
     }
-    m_port.setPortName(m_portName);
-    m_port.setBaudRate(m_baud);
-    m_port.setDataBits(QSerialPort::Data8);
-    m_port.setParity(QSerialPort::NoParity);//校验设置，无奇偶校验（因为我们已经使用了CRC校验）
-    m_port.setStopBits(QSerialPort::OneStop);
-    m_port.setFlowControl(QSerialPort::NoFlowControl);//无流控模式（因为我们自定义了协议已经丢包）
+    m_port.setPortName(m_cfg.portName);
+    m_port.setBaudRate(m_cfg.baudRate);
+    m_port.setDataBits(m_cfg.dataBits);
+    m_port.setParity(m_cfg.parity);//校验设置，无奇偶校验（因为我们已经使用了CRC校验）
+    m_port.setStopBits(m_cfg.stopBits);
+    m_port.setFlowControl(m_cfg.flowControl);//无流控模式（因为我们自定义了协议已经丢包）
 
     if(!m_port.open(QIODevice::ReadWrite)){
         //判断是否以可读写的方式打开

@@ -11,7 +11,17 @@ FakeDevice::FakeDevice(QObject *parent)
 
     // 中文注释：只连接一次 frameReceived，避免重复连接导致槽函数叠加触发
     connect(&m_dev,&SerialDevice::frameReceived,this,[this](quint8 t,quint16 s,QByteArray p){
+        emit frameReceived(t, s, p);
         onFrame(t,s,p);
+    });
+    connect(&m_dev, &SerialDevice::opened, this, [this]() {
+        emit opened();
+    });
+    connect(&m_dev, &SerialDevice::closed, this, [this]() {
+        emit closed();
+    });
+    connect(&m_dev, &SerialDevice::errorOccurred, this, [this](const QString &msg) {
+        emit errorOccurred(msg);
     });
 
     // 中文注释：定时器连接放在构造函数中，只建立一次
@@ -21,6 +31,21 @@ FakeDevice::FakeDevice(QObject *parent)
 void FakeDevice::setPortName(const QString& name)
 {
     m_dev.setPortName(name);
+}
+
+void FakeDevice::setConfig(const SerialPortConfig& cfg)
+{
+    m_dev.setConfig(cfg);
+}
+
+SerialPortConfig FakeDevice::config() const
+{
+    return m_dev.config();
+}
+
+bool FakeDevice::isOpen() const
+{
+    return m_dev.isOpen();
 }
 bool FakeDevice::open()
 {

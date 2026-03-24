@@ -16,6 +16,8 @@ set(PROJECT_SOURCES
         main.cpp
         ui/mainwindow.cpp
         ui/mainwindow.h
+        ui/parameterdialog.cpp
+        ui/parameterdialog.h
         ui/mainwindow.ui
 )
 
@@ -34,9 +36,15 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         core/ControlManager.h core/ControlManager.cpp
         core/DataBuffer.h core/DataBuffer.cpp
         core/LogWorker.h core/LogWorker.cpp
+        core/applogger.h core/applogger.cpp
         device/fakedevice.h device/fakedevice.cpp
+        file/liverecorder.h file/liverecorder.cpp
         algorithm/IAlgorithm.h
         algorithm/pidalgorithm.h algorithm/pidalgorithm.cpp
+        algorithm/predictivealgorithm.h algorithm/predictivealgorithm.cpp
+        algorithm/adeptivealgorithm.h algorithm/adeptivealgorithm.cpp
+        algorithm/neuralpidalgorithm.h algorithm/neuralpidalgorithm.cpp
+        algorithm/fnpidalgorithm.h algorithm/fnpidalgorithm.cpp
         schema/paranode.h schema/paranode.cpp
         schema/appsysform.h schema/appsysform.cpp
         schema/paratlvcodec.h schema/paratlvcodec.cpp

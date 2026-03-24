@@ -5,6 +5,9 @@
 #include <QApplication>
 #include<QBuffer>
 #include<QDebug>
+#include <QDir>
+#include <QThread>
+#include "core/applogger.h"
 #include "DcsProtocol/sysform.h"
 #include "protocol/framecodec.h"
 #include "protocol/tlvcodec.h"
@@ -13,7 +16,7 @@
 
 
 
-static void writeFragmented(QSerialPort& tx,const QByteArray& data,const QList<int>& chunks)
+/*static void writeFragmented(QSerialPort& tx,const QByteArray& data,const QList<int>& chunks)
 {
     int pos = 0;
     for(int n:chunks)
@@ -33,19 +36,29 @@ static QByteArray corruptLastCrcByte(QByteArray frame)
     frame[frame.size()-1]=static_cast<char>(static_cast<quint8>(frame.back())^0xFF);//翻转字节
     return frame;
 }
+*/
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    QThread::currentThread()->setObjectName(QStringLiteral("UI"));
+
+    // 中文注释：初始化统一日志系统（发布版默认过滤 DEBUG，不依赖终端）
+    const QString logDir = QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("logs"));
+#ifdef QT_NO_DEBUG_OUTPUT
+    AppLogger::instance().initialize(AppLogger::Level::Info, logDir, false, 15);
+#else
+    AppLogger::instance().initialize(AppLogger::Level::Debug, logDir, true, 15);
+#endif
 
     // schema：ParaNode / AppSysForm / TLV 映射自测（不需要串口）。测完可注释掉本段。
-    {
+    /*{
         QString schemaReport;
         if (!runSchemaSelfTest(&schemaReport)) {
             qCritical() << schemaReport;
             // 需要「测试失败即退出」时取消下面一行注释：
             // return 1;
         }
-    }
+    }*/
 
     MainWindow w;
     w.show();
@@ -263,5 +276,7 @@ int main(int argc, char *argv[])
     });
 
 */
-    return a.exec();
+    const int ret = a.exec();
+    AppLogger::instance().shutdown();
+    return ret;
 }

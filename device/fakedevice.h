@@ -11,8 +11,16 @@ class FakeDevice : public QObject
 public:
     explicit FakeDevice(QObject *parent = nullptr);
     void setPortName(const QString& name);
+    void setConfig(const SerialPortConfig& cfg);
+    SerialPortConfig config() const;
+    bool isOpen() const;
     bool open();
     void close();
+signals:
+    void opened();
+    void closed();
+    void errorOccurred(QString message);
+    void frameReceived(quint8 msgType, quint16 seq, QByteArray payload);
 private:
     void onFrame(quint8 msgType,quint16 seq,QByteArray payload);    //主控端接收设备的 “回信”
     void tick();

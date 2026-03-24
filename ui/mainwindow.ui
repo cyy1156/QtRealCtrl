@@ -414,8 +414,8 @@ QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
              </property>
              <property name="font">
               <font>
-               <pointsize>18</pointsize>
-               <bold>true</bold>
+               <pointsize>12</pointsize>
+               <bold>false</bold>
               </font>
              </property>
             </widget>
@@ -643,11 +643,36 @@ QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
                 <widget class="QComboBox" name="comboBox_Mode">
                  <property name="geometry">
                   <rect>
-                   <x>0</x>
-                   <y>0</y>
-                   <width>241</width>
-                   <height>51</height>
+                   <x>58</x>
+                   <y>5</y>
+                   <width>175</width>
+                   <height>40</height>
                   </rect>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <pointsize>12</pointsize>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                </widget>
+                <widget class="QLabel" name="ModeLabel">
+                 <property name="geometry">
+                  <rect>
+                   <x>10</x>
+                   <y>11</y>
+                   <width>45</width>
+                   <height>28</height>
+                  </rect>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <pointsize>11</pointsize>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>模式:</string>
                  </property>
                 </widget>
                </widget>

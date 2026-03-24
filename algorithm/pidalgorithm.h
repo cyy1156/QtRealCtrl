@@ -12,6 +12,12 @@ public:
 
     void setParameters(const QVariantMap& params) override;
     QVariantMap parameters() const override;
+    QList<AlgorithmParamDef> parameterSchema() const override;
+    bool predictNextFeedback(double target,
+                             double current,
+                             double controlOutput,
+                             double dtSec,
+                             double& predictedNext) override;
 
     void reset() override;
 private:
