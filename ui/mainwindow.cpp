@@ -91,10 +91,7 @@ MainWindow::MainWindow(QWidget *parent)
          m_softSimTarget = v;
          qCInfo(lcUI) << "[UserAction] set target input =" << v;
      });
-     m_softSimTarget = 100.0;
-     QMetaObject::invokeMethod(m_sys,[this](){
-         m_sys->setTargetValue(100.0);
-     },Qt::QueuedConnection);
+    m_softSimTarget = 100.0;
 
      // 中文注释：把底部蓝色区域作为日志面板，显示命令行同款日志
      auto *bottomLayout = new QVBoxLayout(ui->Bottomfame);
@@ -108,12 +105,73 @@ MainWindow::MainWindow(QWidget *parent)
      m_btnPauseAutoScroll = new QPushButton(QStringLiteral("暂停自动滚动"), ui->Bottomfame);
      m_btnClearLog->setFixedHeight(26);
      m_btnPauseAutoScroll->setFixedHeight(26);
-     m_btnClearLog->setStyleSheet(QStringLiteral(
-         "QPushButton { background-color: rgb(52, 64, 98); color: rgb(230, 238, 255); border: 1px solid rgb(80, 104, 150); padding: 3px 10px; }"
-         "QPushButton:hover { background-color: rgb(70, 84, 122); }"));
-     m_btnPauseAutoScroll->setStyleSheet(QStringLiteral(
-         "QPushButton { background-color: rgb(52, 64, 98); color: rgb(230, 238, 255); border: 1px solid rgb(80, 104, 150); padding: 3px 10px; }"
-         "QPushButton:hover { background-color: rgb(70, 84, 122); }"));
+    // 苹果系玻璃按钮：更柔和高光渐变（动态按钮）
+    m_btnClearLog->setStyleSheet(QStringLiteral(
+        "QPushButton {"
+        "  color: rgba(245, 250, 255, 0.98);"
+        "  background-color: rgba(255,255,255,0.10);"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "                              stop:0 rgba(255,255,255,0.24),"
+        "                              stop:1 rgba(255,255,255,0.06));"
+        "  border: 1px solid rgba(255,255,255,0.28);"
+        "  border-radius: 12px;"
+        "  padding: 3px 14px;"
+        "  font-weight: 600;"
+        "  font-family: 'SF Pro Display','SF Pro Text','PingFang SC','Microsoft YaHei',sans-serif;"
+        "}"
+        "QPushButton:hover {"
+        "  background-color: rgba(255,255,255,0.14);"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "                              stop:0 rgba(255,255,255,0.32),"
+        "                              stop:1 rgba(255,255,255,0.08));"
+        "  border: 1px solid rgba(170, 210, 255, 0.70);"
+        "}"
+        "QPushButton:pressed {"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "                              stop:0 rgba(255,255,255,0.14),"
+        "                              stop:1 rgba(255,255,255,0.04));"
+        "  border: 1px solid rgba(120, 180, 255, 0.55);"
+        "}"
+        "QPushButton:disabled {"
+        "  color: rgba(235, 245, 255, 0.45);"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "                              stop:0 rgba(255,255,255,0.06),"
+        "                              stop:1 rgba(255,255,255,0.03));"
+        "  border: 1px solid rgba(255, 255, 255, 0.18);"
+        "}"));
+    m_btnPauseAutoScroll->setStyleSheet(QStringLiteral(
+        "QPushButton {"
+        "  color: rgba(245, 250, 255, 0.98);"
+        "  background-color: rgba(255,255,255,0.10);"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "                              stop:0 rgba(255,255,255,0.24),"
+        "                              stop:1 rgba(255,255,255,0.06));"
+        "  border: 1px solid rgba(255,255,255,0.28);"
+        "  border-radius: 12px;"
+        "  padding: 3px 14px;"
+        "  font-weight: 600;"
+        "  font-family: 'SF Pro Display','SF Pro Text','PingFang SC','Microsoft YaHei',sans-serif;"
+        "}"
+        "QPushButton:hover {"
+        "  background-color: rgba(255,255,255,0.14);"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "                              stop:0 rgba(255,255,255,0.32),"
+        "                              stop:1 rgba(255,255,255,0.08));"
+        "  border: 1px solid rgba(170, 210, 255, 0.70);"
+        "}"
+        "QPushButton:pressed {"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "                              stop:0 rgba(255,255,255,0.14),"
+        "                              stop:1 rgba(255,255,255,0.04));"
+        "  border: 1px solid rgba(120, 180, 255, 0.55);"
+        "}"
+        "QPushButton:disabled {"
+        "  color: rgba(235, 245, 255, 0.45);"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "                              stop:0 rgba(255,255,255,0.06),"
+        "                              stop:1 rgba(255,255,255,0.03));"
+        "  border: 1px solid rgba(255, 255, 255, 0.18);"
+        "}"));
      toolLayout->addWidget(m_btnClearLog);
      toolLayout->addWidget(m_btnPauseAutoScroll);
      toolLayout->addStretch();
@@ -204,6 +262,9 @@ MainWindow::MainWindow(QWidget *parent)
      m_pcDev = new SerialDevice();
      m_fake  = new FakeDevice();
      m_sys   = new SysInfo();
+    QMetaObject::invokeMethod(m_sys,[this](){
+        m_sys->setTargetValue(100.0);
+    },Qt::QueuedConnection);
      auto* pid =new PIDAlgorithm();
      pid->setParameters({{"Kp",1.0},{"Ki",0.2},{"Kd",0.0}});
 
@@ -1717,11 +1778,25 @@ MainWindow::~MainWindow()
 {
     stopLiveRecording();
     // 中文注释：阶段 5 线程模型退出流程：先停控制，再 quit/wait 工作线程，最后析构对象
-    if(m_ctrl)
+    if(m_ctrl && m_dataThread && m_dataThread->isRunning())
     {
         QMetaObject::invokeMethod(m_ctrl,[this](){
             m_ctrl->stop();
         },Qt::BlockingQueuedConnection);
+    }
+
+    // 中文注释：跨线程对象优先在其所属线程排队 deleteLater，降低退出阶段风险
+    if (m_dataThread && m_dataThread->isRunning())
+    {
+        if (m_ctrl) { QMetaObject::invokeMethod(m_ctrl, "deleteLater", Qt::BlockingQueuedConnection); m_ctrl = nullptr; }
+        if (m_sys) { QMetaObject::invokeMethod(m_sys, "deleteLater", Qt::BlockingQueuedConnection); m_sys = nullptr; }
+        if (m_pcDev) { QMetaObject::invokeMethod(m_pcDev, "deleteLater", Qt::BlockingQueuedConnection); m_pcDev = nullptr; }
+        if (m_fake) { QMetaObject::invokeMethod(m_fake, "deleteLater", Qt::BlockingQueuedConnection); m_fake = nullptr; }
+    }
+    if (m_logThread && m_logThread->isRunning() && m_logWorker)
+    {
+        QMetaObject::invokeMethod(m_logWorker, "deleteLater", Qt::BlockingQueuedConnection);
+        m_logWorker = nullptr;
     }
 
     if(m_dataThread)
@@ -1735,7 +1810,7 @@ MainWindow::~MainWindow()
         m_logThread->wait();
     }
 
-    // 中文注释：线程退出后再删除，避免 QObject 在事件循环中还被引用
+    // 中文注释：若线程未启动或 deleteLater 未执行，回退到直接释放
     delete m_ctrl;
     delete m_sys;
     delete m_pcDev;

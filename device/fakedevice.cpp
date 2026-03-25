@@ -59,10 +59,10 @@ void FakeDevice::close()
     if(m_timer.isActive()) m_timer.stop();
     m_dev.close();
 }
-void FakeDevice::onFrame(quint8 msgTpye,quint16 seq,QByteArray payload)
+void FakeDevice::onFrame(quint8 msgType,quint16 seq,QByteArray payload)
 {
     Q_UNUSED(seq);
-    if(msgTpye==static_cast<quint8>(MsgType::Set_TARGET))
+    if(msgType==static_cast<quint8>(MsgType::Set_TARGET))
     {
         auto items=Tlvcodec::decodeItems(payload);
         float tgt=0.0f;
@@ -76,7 +76,7 @@ void FakeDevice::onFrame(quint8 msgTpye,quint16 seq,QByteArray payload)
             m_torqueCmd=torqueCmd;
             qDebug()<<"[FakeDevice] torqueCmd="<<m_torqueCmd;
         }
-    } else if(msgTpye==static_cast<quint8>(MsgType::CONTROL_CMD)) {
+    } else if(msgType==static_cast<quint8>(MsgType::CONTROL_CMD)) {
         auto items=Tlvcodec::decodeItems(payload);
         quint8 enable=0;
         if(Tlvcodec::tryGetUInt8(items,TlvType::Enable,enable)){

@@ -12,47 +12,69 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets SerialPort PrintSupport)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets SerialPort PrintSupport)
 
-set(PROJECT_SOURCES
-        main.cpp
-        ui/mainwindow.cpp
-        ui/mainwindow.h
-        ui/parameterdialog.cpp
-        ui/parameterdialog.h
-        ui/mainwindow.ui
+set(REALCTRL_SOURCES
+    main.cpp
+    ui/mainwindow.cpp
+    ui/mainwindow.h
+    ui/parameterdialog.cpp
+    ui/parameterdialog.h
+    ui/mainwindow.ui
+    DcsProtocol/DcsProtocolTypes.h
+    DcsProtocol/dcsprotocoltypes.cpp
+    DcsProtocol/ctrlmode.h
+    DcsProtocol/ctrlmode.cpp
+    # 说明：当前主线使用 DcsProtocol/sysform.*，protocol/sysform.* 暂保留不删除
+    DcsProtocol/sysform.h
+    DcsProtocol/sysform.cpp
+    protocol/framecodec.h
+    protocol/framecodec.cpp
+    protocol/tlvcodec.h
+    protocol/tlvcodec.cpp
+    device/DeviceInterface.h
+    device/serialdevice.h
+    device/serialdevice.cpp
+    core/Sysinfo.h
+    core/controlmanager.h
+    core/controlmanager.cpp
+    core/DataBuffer.h
+    core/DataBuffer.cpp
+    core/LogWorker.h
+    core/LogWorker.cpp
+    core/applogger.h
+    core/applogger.cpp
+    device/fakedevice.h
+    device/fakedevice.cpp
+    file/liverecorder.h
+    file/liverecorder.cpp
+    algorithm/IAlgorithm.h
+    algorithm/pidalgorithm.h
+    algorithm/pidalgorithm.cpp
+    algorithm/predictivealgorithm.h
+    algorithm/predictivealgorithm.cpp
+    algorithm/adeptivealgorithm.h
+    algorithm/adeptivealgorithm.cpp
+    algorithm/neuralpidalgorithm.h
+    algorithm/neuralpidalgorithm.cpp
+    algorithm/fnpidalgorithm.h
+    algorithm/fnpidalgorithm.cpp
+    schema/paranode.h
+    schema/paranode.cpp
+    schema/appsysform.h
+    schema/appsysform.cpp
+    schema/paratlvcodec.h
+    schema/paratlvcodec.cpp
+    schema/sysformtlvmapper.h
+    schema/sysformtlvmapper.cpp
+    schema/schema_selftest.h
+    schema/schema_selftest.cpp
+    QCustomPlot/qcustomplot.cpp
+    QCustomPlot/qcustomplot.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(RealCtrl
         MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}
-        DcsProtocol/DcsProtocolTypes.h DcsProtocol/dcsprotocoltypes.cpp
-        DcsProtocol/ctrlmode.h         DcsProtocol/ctrlmode.cpp
-        DcsProtocol/sysform.h          DcsProtocol/sysform.cpp
-        protocol/framecodec.h protocol/framecodec.cpp
-        protocol/tlvcodec.h protocol/tlvcodec.cpp
-        device/DeviceInterface.h
-        device/serialdevice.h device/serialdevice.cpp
-        core/Sysinfo.h
-        core/ControlManager.h core/ControlManager.cpp
-        core/DataBuffer.h core/DataBuffer.cpp
-        core/LogWorker.h core/LogWorker.cpp
-        core/applogger.h core/applogger.cpp
-        device/fakedevice.h device/fakedevice.cpp
-        file/liverecorder.h file/liverecorder.cpp
-        algorithm/IAlgorithm.h
-        algorithm/pidalgorithm.h algorithm/pidalgorithm.cpp
-        algorithm/predictivealgorithm.h algorithm/predictivealgorithm.cpp
-        algorithm/adeptivealgorithm.h algorithm/adeptivealgorithm.cpp
-        algorithm/neuralpidalgorithm.h algorithm/neuralpidalgorithm.cpp
-        algorithm/fnpidalgorithm.h algorithm/fnpidalgorithm.cpp
-        schema/paranode.h schema/paranode.cpp
-        schema/appsysform.h schema/appsysform.cpp
-        schema/paratlvcodec.h schema/paratlvcodec.cpp
-        schema/sysformtlvmapper.h schema/sysformtlvmapper.cpp
-        schema/schema_selftest.h schema/schema_selftest.cpp
-        QCustomPlot/qcustomplot.cpp QCustomPlot/qcustomplot.h
-
-
+        ${REALCTRL_SOURCES}
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET RealCtrl APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -61,13 +83,13 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 else()
     if(ANDROID)
         add_library(RealCtrl SHARED
-            ${PROJECT_SOURCES}
+            ${REALCTRL_SOURCES}
         )
 # Define properties for Android with Qt 5 after find_package() calls as:
 #    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else()
         add_executable(RealCtrl
-            ${PROJECT_SOURCES}
+            ${REALCTRL_SOURCES}
         )
     endif()
 endif()

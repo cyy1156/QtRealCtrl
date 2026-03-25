@@ -37,7 +37,7 @@ void ControlManager::start()
 {
     if(!m_dev->isOpen())
     {
-        qCWarning(lcControl) << "ControlManger start failed: device not open";
+        qCWarning(lcControl) << "ControlManager start failed: device not open";
         return;
     }
     // 中文注释：先下发“使能=1”，再启动控制周期，避免设备未使能就开始计算

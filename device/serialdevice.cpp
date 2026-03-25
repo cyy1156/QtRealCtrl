@@ -68,7 +68,7 @@ void SerialDevice::close()
     }
 }
 
-bool SerialDevice::send(quint8 msgTpye,quint8 flags,const QByteArray& payload )
+bool SerialDevice::send(quint8 msgType,quint8 flags,const QByteArray& payload )
 {
     if(!m_port.isOpen())
     {
@@ -78,7 +78,7 @@ bool SerialDevice::send(quint8 msgTpye,quint8 flags,const QByteArray& payload )
     }
 
     const quint16 seq=m_seq++;
-    const QByteArray frame =m_codec.encodeFrame(msgTpye,flags,seq,payload);
+    const QByteArray frame =m_codec.encodeFrame(msgType,flags,seq,payload);
 
     if(frame.isEmpty())
     {
