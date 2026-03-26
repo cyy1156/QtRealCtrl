@@ -44,7 +44,7 @@
 #include "QCustomPlot/qcustomplot.h"
 #include "core/applogger.h"
 #include "ui/parameterdialog.h"
-
+//日志分类
 Q_LOGGING_CATEGORY(lcUI, "UI")
 Q_LOGGING_CATEGORY(lcSerial, "Serial")
 Q_LOGGING_CATEGORY(lcSoftSim, "Control")
@@ -55,6 +55,98 @@ MainWindow::MainWindow(QWidget *parent)
 {
     //初始化
      ui->setupUi(this);//把 .ui 界面文件生成的代码，绑定到当前窗口对象
+
+     // 中文注释：把最外层窗口边框颜色改为淡蓝，避免与控制面板淡蓝边框出现“错位双线”
+     if (ui && ui->rootFrame)
+     {
+         ui->rootFrame->setStyleSheet(QStringLiteral(
+             "QFrame#rootFrame {"
+             "  border: 1px solid rgba(107,168,255,0.18);"
+             "}"
+         ));
+     }
+
+     // 中文注释：升级“控制面板”背景为浅蓝玻璃白底（配合全局浅蓝主题）
+     if (ui && ui->Contrlframe)
+     {
+         ui->Contrlframe->setAutoFillBackground(true);
+         ui->Contrlframe->setStyleSheet(QStringLiteral(
+             "QFrame#Contrlframe {"
+             "  background-color: rgba(255,255,255,0.86);"
+             "  border: 1px solid rgba(107,168,255,0.18);"
+             "  border-top: 0px solid rgba(107,168,255,0.18);"
+             "  border-left: 1px solid rgba(107,168,255,0.18);"
+             "  border-right: 1px solid rgba(107,168,255,0.18);"
+             "  border-bottom: 1px solid rgba(107,168,255,0.18);"
+             "  border-top-left-radius: 0px;"
+             "  border-top-right-radius: 0px;"
+             "  border-bottom-left-radius: 0px;"
+             "  border-bottom-right-radius: 0px;"
+             "}"
+         ));
+     }
+
+     // 中文注释：左侧外层底板去掉黑边、提升留白层级（让“控制面板”看起来更干净）
+     if (ui && ui->LeftPlane)
+     {
+         ui->LeftPlane->setStyleSheet(QStringLiteral(
+             "QWidget#LeftPlane {"
+             "  background-color: #F6F8FC;"
+             "  border: none;"
+             "}"
+         ));
+     }
+
+     // 中文注释：下拉弹窗样式（控制面板内 combo：减少弹窗底部多余留白）
+     const QString glassCombo = QStringLiteral(
+         "QComboBox {"
+         "  color: #1F2937;"
+         "  background-color: rgba(255,255,255,0.92);"
+         "  border: 1px solid rgba(107,168,255,0.25);"
+         "  border-radius: 12px;"
+         "  padding-left: 12px;"
+         "  padding-right: 28px;"
+         "  font-size: 12pt;"
+         "}"
+         "QComboBox:hover {"
+         "  border: 1px solid rgba(107,168,255,0.40);"
+         "}"
+         "QComboBox::drop-down {"
+         "  subcontrol-origin: padding;"
+         "  subcontrol-position: right center;"
+         "  width: 26px;"
+         "  height: 26px;"
+         "  border: 1px solid rgba(91,141,239,0.55);"
+         "  background-color: rgba(91,141,239,0.22);"
+         "  border-radius: 13px;"
+         "}"
+         "QComboBox::down-arrow {"
+         "  image: none;"
+         "  width: 0;"
+         "  height: 0;"
+         "  border-left: 5px solid transparent;"
+         "  border-right: 5px solid transparent;"
+         "  border-top: 6px solid rgba(255,255,255,0.85);"
+         "}"
+         "QComboBox QAbstractItemView {"
+         "  color: #1F2937;"
+         "  background-color: rgba(255,255,255,0.98);"
+         "  border: 1px solid rgba(107,168,255,0.22);"
+         "  border-radius: 12px;"
+         "  padding: 6px 0px;"
+         "  selection-background-color: rgba(107,168,255,0.18);"
+         "  max-height: 160px;"
+         "}"
+         "QComboBox QAbstractItemView::item:selected {"
+         "  background-color: rgba(107,168,255,0.18);"
+         "}"
+         "QComboBox QAbstractItemView::item {"
+         "  height: 26px;"
+         "  padding-left: 12px;"
+         "}"
+     );
+    Q_UNUSED(glassCombo);
+
      // 中文注释：在 frame_2 中动态放入 QCustomPlot，绘制两条曲线（当前值/控制量）
      auto *plotLayout = new QVBoxLayout(ui->frame_2);
      plotLayout->setContentsMargins(4, 4, 4, 4);
@@ -74,7 +166,8 @@ MainWindow::MainWindow(QWidget *parent)
      m_plot->yAxis->setRange(-5.0, 5.0);
 
      // 中文注释：把“设定值”展示标签替换为可输入控件，支持自定义目标值
-     m_targetInput = new QDoubleSpinBox(ui->BottomDispalyfame);
+     // 父容器尽量复用 ui->m_setting 所在的容器，避免 ui 里 frame 名变更导致编译/布局问题
+     m_targetInput = new QDoubleSpinBox(ui->m_setting ? ui->m_setting->parentWidget() : this);
      m_targetInput->setGeometry(ui->m_setting->geometry());
      m_targetInput->setDecimals(3);
      m_targetInput->setRange(-10000.0, 10000.0);
@@ -105,73 +198,217 @@ MainWindow::MainWindow(QWidget *parent)
      m_btnPauseAutoScroll = new QPushButton(QStringLiteral("暂停自动滚动"), ui->Bottomfame);
      m_btnClearLog->setFixedHeight(26);
      m_btnPauseAutoScroll->setFixedHeight(26);
-    // 苹果系玻璃按钮：更柔和高光渐变（动态按钮）
-    m_btnClearLog->setStyleSheet(QStringLiteral(
+    // 中文注释：底部日志工具条按钮同主题（浅蓝/白底/深色字体）
+    const QString glassBtnMini = QStringLiteral(
         "QPushButton {"
-        "  color: rgba(245, 250, 255, 0.98);"
-        "  background-color: rgba(255,255,255,0.10);"
+        "  color: #111827;"
+        "  background-color: rgba(255,255,255,0.70);"
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "                              stop:0 rgba(255,255,255,0.24),"
-        "                              stop:1 rgba(255,255,255,0.06));"
-        "  border: 1px solid rgba(255,255,255,0.28);"
+        "                              stop:0 rgba(255,255,255,0.92),"
+        "                              stop:1 rgba(107,168,255,0.18));"
+        "  border: 1px solid rgba(107,168,255,0.30);"
         "  border-radius: 12px;"
-        "  padding: 3px 14px;"
-        "  font-weight: 600;"
+        "  padding: 2px 12px;"
+        "  font-size: 10pt;"
         "  font-family: 'SF Pro Display','SF Pro Text','PingFang SC','Microsoft YaHei',sans-serif;"
         "}"
         "QPushButton:hover {"
-        "  background-color: rgba(255,255,255,0.14);"
+        "  background-color: rgba(255,255,255,0.78);"
+        "  border: 1px solid rgba(107,168,255,0.50);"
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "                              stop:0 rgba(255,255,255,0.32),"
-        "                              stop:1 rgba(255,255,255,0.08));"
-        "  border: 1px solid rgba(170, 210, 255, 0.70);"
+        "                              stop:0 rgba(255,255,255,0.98),"
+        "                              stop:1 rgba(107,168,255,0.28));"
         "}"
         "QPushButton:pressed {"
+        "  background-color: rgba(235,245,255,0.78);"
+        "  border: 1px solid rgba(107,168,255,0.65);"
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "                              stop:0 rgba(255,255,255,0.14),"
-        "                              stop:1 rgba(255,255,255,0.04));"
-        "  border: 1px solid rgba(120, 180, 255, 0.55);"
+        "                              stop:0 rgba(107,168,255,0.22),"
+        "                              stop:1 rgba(255,255,255,0.85));"
         "}"
         "QPushButton:disabled {"
-        "  color: rgba(235, 245, 255, 0.45);"
+        "  color: rgba(17,24,39,0.35);"
+        "  background-color: rgba(255,255,255,0.60);"
+        "  border: 1px solid rgba(107,168,255,0.18);"
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "                              stop:0 rgba(255,255,255,0.06),"
-        "                              stop:1 rgba(255,255,255,0.03));"
-        "  border: 1px solid rgba(255, 255, 255, 0.18);"
-        "}"));
-    m_btnPauseAutoScroll->setStyleSheet(QStringLiteral(
+        "                              stop:0 rgba(255,255,255,0.85),"
+        "                              stop:1 rgba(107,168,255,0.10));"
+        "}"
+    );
+    m_btnClearLog->setStyleSheet(glassBtnMini);
+    m_btnPauseAutoScroll->setStyleSheet(glassBtnMini);
+
+    // 中文注释：对“开始”按钮做浅蓝玻璃主题升级（先只改开始，便于你观察效果）
+    if (ui->btnStart)
+    {
+        ui->btnStart->setStyleSheet(QStringLiteral(
+            "QPushButton {"
+            "  color: #111827;"
+            "  background-color: rgba(255,255,255,0.70);"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "                              stop:0 rgba(255,255,255,0.92),"
+            "                              stop:1 rgba(107,168,255,0.18));"
+            "  border: 1px solid rgba(107,168,255,0.35);"
+            "  border-radius: 16px;"
+            "  padding: 6px 18px;"
+            "  font-size: 12pt;"
+            "  font-family: 'SF Pro Display','SF Pro Text','PingFang SC','Microsoft YaHei',sans-serif;"
+            "}"
+            "QPushButton:hover {"
+            "  background-color: rgba(255,255,255,0.78);"
+            "  border: 1px solid rgba(107,168,255,0.55);"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "                              stop:0 rgba(255,255,255,0.98),"
+            "                              stop:1 rgba(107,168,255,0.28));"
+            "}"
+            "QPushButton:pressed {"
+            "  background-color: rgba(235,245,255,0.78);"
+            "  border: 1px solid rgba(107,168,255,0.70);"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "                              stop:0 rgba(107,168,255,0.30),"
+            "                              stop:1 rgba(255,255,255,0.80));"
+            "}"
+            "QPushButton:disabled {"
+            "  color: rgba(17,24,39,0.35);"
+            "  background-color: rgba(255,255,255,0.60);"
+            "  border: 1px solid rgba(107,168,255,0.18);"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "                              stop:0 rgba(255,255,255,0.85),"
+            "                              stop:1 rgba(107,168,255,0.10));"
+            "}"
+        ));
+    }
+
+    // 中文注释：对“停止”按钮同主题升级（用于你逐步检查效果）
+    if (ui->btnStop)
+    {
+        ui->btnStop->setStyleSheet(QStringLiteral(
+            "QPushButton {"
+            "  color: #111827;"
+            "  background-color: rgba(255,255,255,0.70);"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "                              stop:0 rgba(255,255,255,0.92),"
+            "                              stop:1 rgba(107,168,255,0.18));"
+            "  border: 1px solid rgba(107,168,255,0.35);"
+            "  border-radius: 16px;"
+            "  padding: 6px 18px;"
+            "  font-size: 12pt;"
+            "  font-family: 'SF Pro Display','SF Pro Text','PingFang SC','Microsoft YaHei',sans-serif;"
+            "}"
+            "QPushButton:hover {"
+            "  background-color: rgba(255,255,255,0.78);"
+            "  border: 1px solid rgba(107,168,255,0.55);"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "                              stop:0 rgba(255,255,255,0.98),"
+            "                              stop:1 rgba(107,168,255,0.28));"
+            "}"
+            "QPushButton:pressed {"
+            "  background-color: rgba(235,245,255,0.78);"
+            "  border: 1px solid rgba(107,168,255,0.70);"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "                              stop:0 rgba(107,168,255,0.30),"
+            "                              stop:1 rgba(255,255,255,0.80));"
+            "}"
+            "QPushButton:disabled {"
+            "  color: rgba(17,24,39,0.35);"
+            "  background-color: rgba(255,255,255,0.60);"
+            "  border: 1px solid rgba(107,168,255,0.18);"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "                              stop:0 rgba(255,255,255,0.85),"
+            "                              stop:1 rgba(107,168,255,0.10));"
+            "}"
+        ));
+    }
+
+    // 中文注释：主侧栏其余按键统一套用浅蓝白底玻璃主题
+    const QString glassBtnMain = QStringLiteral(
         "QPushButton {"
-        "  color: rgba(245, 250, 255, 0.98);"
-        "  background-color: rgba(255,255,255,0.10);"
+        "  color: #111827;"
+        "  background-color: rgba(255,255,255,0.70);"
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "                              stop:0 rgba(255,255,255,0.24),"
-        "                              stop:1 rgba(255,255,255,0.06));"
-        "  border: 1px solid rgba(255,255,255,0.28);"
-        "  border-radius: 12px;"
-        "  padding: 3px 14px;"
-        "  font-weight: 600;"
+        "                              stop:0 rgba(255,255,255,0.92),"
+        "                              stop:1 rgba(107,168,255,0.18));"
+        "  border: 1px solid rgba(107,168,255,0.35);"
+        "  border-radius: 16px;"
+        "  padding: 6px 18px;"
+        "  font-size: 12pt;"
         "  font-family: 'SF Pro Display','SF Pro Text','PingFang SC','Microsoft YaHei',sans-serif;"
         "}"
         "QPushButton:hover {"
-        "  background-color: rgba(255,255,255,0.14);"
+        "  background-color: rgba(255,255,255,0.78);"
+        "  border: 1px solid rgba(107,168,255,0.55);"
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "                              stop:0 rgba(255,255,255,0.32),"
-        "                              stop:1 rgba(255,255,255,0.08));"
-        "  border: 1px solid rgba(170, 210, 255, 0.70);"
+        "                              stop:0 rgba(255,255,255,0.98),"
+        "                              stop:1 rgba(107,168,255,0.28));"
         "}"
         "QPushButton:pressed {"
+        "  background-color: rgba(235,245,255,0.78);"
+        "  border: 1px solid rgba(107,168,255,0.70);"
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "                              stop:0 rgba(255,255,255,0.14),"
-        "                              stop:1 rgba(255,255,255,0.04));"
-        "  border: 1px solid rgba(120, 180, 255, 0.55);"
+        "                              stop:0 rgba(107,168,255,0.30),"
+        "                              stop:1 rgba(255,255,255,0.80));"
         "}"
         "QPushButton:disabled {"
-        "  color: rgba(235, 245, 255, 0.45);"
+        "  color: rgba(17,24,39,0.35);"
+        "  background-color: rgba(255,255,255,0.60);"
+        "  border: 1px solid rgba(107,168,255,0.18);"
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "                              stop:0 rgba(255,255,255,0.06),"
-        "                              stop:1 rgba(255,255,255,0.03));"
-        "  border: 1px solid rgba(255, 255, 255, 0.18);"
-        "}"));
+        "                              stop:0 rgba(255,255,255,0.85),"
+        "                              stop:1 rgba(107,168,255,0.10));"
+        "}"
+    );
+    if (ui->btnClear) { ui->btnClear->setStyleSheet(glassBtnMain); }
+    if (ui->btnPara) { ui->btnPara->setStyleSheet(glassBtnMain); }
+    if (ui->btnSerialPort) { ui->btnSerialPort->setStyleSheet(glassBtnMain); }
+    if (ui->btnSave) { ui->btnSave->setStyleSheet(glassBtnMain); }
+    // 中文注释：兜底：如果界面里存在未使用的占位按钮，也保持同主题
+    if (ui->pushButton_4) { ui->pushButton_4->setStyleSheet(glassBtnMain); }
+
+    // 中文注释：让下拉框闭合态外观与按钮同主题，但不强改下拉列表 view，
+    // 以避免影响你要的“点击选择效果与原版一致”
+    const QString glassComboClosed = QStringLiteral(
+        "QComboBox {"
+        "  color: #111827;"
+        "  background-color: rgba(255,255,255,0.70);"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "                              stop:0 rgba(255,255,255,0.92),"
+        "                              stop:1 rgba(107,168,255,0.18));"
+        "  border: 1px solid rgba(107,168,255,0.35);"
+        "  border-radius: 16px;"
+        "  padding-left: 12px;"
+        "  padding-right: 28px;"
+        "  font-size: 12pt;"
+        "  font-family: 'SF Pro Display','SF Pro Text','PingFang SC','Microsoft YaHei',sans-serif;"
+        "}"
+        "QComboBox:hover {"
+        "  background-color: rgba(255,255,255,0.78);"
+        "  border: 1px solid rgba(107,168,255,0.55);"
+        "}"
+        "QComboBox:pressed {"
+        "  background-color: rgba(235,245,255,0.78);"
+        "  border: 1px solid rgba(107,168,255,0.70);"
+        "}"
+        "QComboBox::drop-down {"
+        "  subcontrol-origin: padding;"
+        "  subcontrol-position: right center;"
+        "  width: 26px;"
+        "  border: 0px;"
+        "  border-left: 1px solid rgba(107,168,255,0.25);"
+        "  background-color: rgba(255,255,255,0.12);"
+        "  border-top-right-radius: 16px;"
+        "  border-bottom-right-radius: 16px;"
+        "}"
+        "QComboBox::down-arrow {"
+        "  width: 0;"
+        "  height: 0;"
+        "  border-left: 5px solid transparent;"
+        "  border-right: 5px solid transparent;"
+        "  border-top: 6px solid rgba(17,24,39,0.85);"
+        "}"
+    );
+    if (ui && ui->comboBox_Alg) { ui->comboBox_Alg->setStyleSheet(glassComboClosed); }
+    if (ui && ui->comboBox_Mode) { ui->comboBox_Mode->setStyleSheet(glassComboClosed); }
+
      toolLayout->addWidget(m_btnClearLog);
      toolLayout->addWidget(m_btnPauseAutoScroll);
      toolLayout->addStretch();
@@ -484,7 +721,32 @@ MainWindow::MainWindow(QWidget *parent)
            QStringLiteral("realtime_%TIMESTAMP%.txt")).toString();
        m_liveCsvFilePath = settings.value("record/liveCsvFilePath", QString()).toString();
        m_liveTxtFilePath = settings.value("record/liveTxtFilePath", QString()).toString();
+
+       // 原始 RX 录制设置
+       m_rawRxEnabled = settings.value("record/rawEnabled", false).toBool();
+       m_rawRxCsvFilePath = settings.value("record/liveRawRxFilePath", QString()).toString();
+       m_rawRxCsvFileNamePattern = settings.value(
+           "record/liveRawRxFileNamePattern",
+           QStringLiteral("realtime_rawrx_%TIMESTAMP%.csv")).toString();
+
+       // 阶段 E2：最大体积上限（超过会自动轮转新文件）
+       const int maxCsvSizeMB = settings.value("record/maxCsvSizeMB", 200).toInt();
+       const int maxTxtSizeMB = settings.value("record/maxTxtSizeMB", 200).toInt();
+       if (maxCsvSizeMB > 0)
+       {
+           m_liveRecorder.setMaxCsvSizeBytes(static_cast<quint64>(maxCsvSizeMB) * 1024ULL * 1024ULL);
+       }
+       if (maxTxtSizeMB > 0)
+       {
+           m_liveRecorder.setMaxTxtSizeBytes(static_cast<quint64>(maxTxtSizeMB) * 1024ULL * 1024ULL);
+       }
    }
+   // 阶段 D2：重连退避/暂停控制状态初始化
+   m_reconnectIntervalMsCurrent = m_reconnectIntervalMs;
+   m_ctrlPausedByReconnect = false;
+   m_fakeReconnectHintShown = false;
+   // 阶段 E1/E2：启动时做一次旧文件清理
+   cleanupOldRecords();
    connect(m_serialPortPollTimer, &QTimer::timeout, this, [this]() {
        pollSerialPorts();
    });
@@ -519,11 +781,36 @@ MainWindow::MainWindow(QWidget *parent)
 
    auto ensureFakePortOpen = [this]() -> bool {
        bool ok = false;
-       QMetaObject::invokeMethod(m_fake, [this, &ok]() {
-          m_fake->setConfig(m_fakeCfg);
+       const QStringList candidatePorts = m_availablePorts;
+       const QString pcPortName = m_pcCfg.portName;
+       QMetaObject::invokeMethod(m_fake, [this, &ok, candidatePorts, pcPortName]() {
+           SerialPortConfig cfg = m_fakeCfg;
+           m_fake->setConfig(cfg);
            ok = m_fake->open();
-           qCInfo(lcSerial) << "Fake port open =" << ok;
+           if (ok)
+           {
+               return;
+           }
+
+           // 阶段 D1/D2：打开失败时，尝试在“当前可用端口”里找替代 Fake 端口
+           // 避免用户只看到无尽重连/无尽失败。
+           for (const QString &p : candidatePorts)
+           {
+               if (p.isEmpty() || p == pcPortName)
+               {
+                   continue;
+               }
+               cfg.portName = p;
+               m_fake->setConfig(cfg);
+               ok = m_fake->open();
+               if (ok)
+               {
+                   m_fakeCfg.portName = p;
+                   break;
+               }
+           }
        }, Qt::BlockingQueuedConnection);
+       qCInfo(lcSerial) << "Fake port open =" << ok;
        return ok;
    };
 
@@ -615,6 +902,30 @@ MainWindow::MainWindow(QWidget *parent)
            scheduleReconnect(QStringLiteral("fake:%1").arg(message));
        }
    }, Qt::QueuedConnection);
+
+   // 原始 RX 录制：把两端（PC/Fake）收到的原始字节流写入 raw CSV
+   connect(m_pcDev,
+           &SerialDevice::rawRxBytesReady,
+           this,
+           [this](quint64 ts, const QByteArray &bytes) {
+               if (!m_rawRxRecorder.isOpen())
+               {
+                   return;
+               }
+               m_rawRxRecorder.appendRx(ts, bytes, QStringLiteral("pc"));
+           },
+           Qt::QueuedConnection);
+   connect(m_fake,
+           &FakeDevice::rawRxBytesReady,
+           this,
+           [this](quint64 ts, const QByteArray &bytes) {
+               if (!m_rawRxRecorder.isOpen())
+               {
+                   return;
+               }
+               m_rawRxRecorder.appendRx(ts, bytes, QStringLiteral("fake"));
+           },
+           Qt::QueuedConnection);
    connect(m_ctrl,
            &ControlManager::telemetrySampleReady,
            this,
@@ -645,6 +956,7 @@ MainWindow::MainWindow(QWidget *parent)
                     m_softSimTimer->stop();
                 }
                 stopLiveRecording();
+                stopRawRxRecording();
                 m_controlRunning = false;
                 m_reconnectAttemptCount = 0;
                 if (m_reconnectTimer && m_reconnectTimer->isActive())
@@ -663,7 +975,18 @@ MainWindow::MainWindow(QWidget *parent)
                 else if (index == 1)
                 {
                     // 中文注释：串口仿真模式 -> 打开 FakeDevice，保持与上位机串口链路
-                    ensureFakePortOpen();
+                    const bool fakeReady = ensureFakePortOpen();
+                    if (!fakeReady && !m_fakeReconnectHintShown)
+                    {
+                        m_fakeReconnectHintShown = true;
+                        QMessageBox::warning(
+                            this,
+                            QStringLiteral("串口仿真需要可用的 Fake 端口"),
+                            QStringLiteral("Fake 端口打开失败，可能是端口不存在/被占用，或 PC/Fake 虚拟串口对未正确配置。\n\n"
+                                          "建议：\n"
+                                          "1) 切换到“纯软件仿真”；或\n"
+                                          "2) 到串口设置里选择正确的 PC/Fake 虚拟串口对（例如 com0com）。"));
+                    }
                     qCInfo(lcUI) << "[Mode] 串口仿真: FakeDevice ready";
                 }
                 else
@@ -702,6 +1025,22 @@ MainWindow::MainWindow(QWidget *parent)
                     qCWarning(lcUI) << "[Recorder] failed to open csv silently"
                                     << m_liveCsvFilePath
                                     << err;
+
+                    // 阶段 E1：统一给出友好提示（避免反复弹窗）
+                    if (!m_recorderOpenErrorShown)
+                    {
+                        m_recorderOpenErrorShown = true;
+                        const QString msg = QStringLiteral(
+                            "无法打开/写入实时记录文件。\n\n"
+                            "保存路径：%1\n"
+                            "原因：%2\n\n"
+                            "建议：\n"
+                            "1) 更换保存目录；\n"
+                            "2) 关闭占用该文件的程序；\n"
+                            "3) 必要时以管理员运行。")
+                                                 .arg(m_liveCsvFilePath, err);
+                        QMessageBox::warning(this, QStringLiteral("实时记录写入失败"), msg);
+                    }
                 }
             }
         }
@@ -719,6 +1058,21 @@ MainWindow::MainWindow(QWidget *parent)
                     qCWarning(lcUI) << "[Recorder] failed to open txt silently"
                                     << m_liveTxtFilePath
                                     << err;
+
+                    if (!m_recorderOpenErrorShown)
+                    {
+                        m_recorderOpenErrorShown = true;
+                        const QString msg = QStringLiteral(
+                            "无法打开/写入实时记录文件。\n\n"
+                            "保存路径：%1\n"
+                            "原因：%2\n\n"
+                            "建议：\n"
+                            "1) 更换保存目录；\n"
+                            "2) 关闭占用该文件的程序；\n"
+                            "3) 必要时以管理员运行。")
+                                                 .arg(m_liveTxtFilePath, err);
+                        QMessageBox::warning(this, QStringLiteral("实时记录写入失败"), msg);
+                    }
                 }
             }
         }
@@ -731,6 +1085,14 @@ MainWindow::MainWindow(QWidget *parent)
             stopLiveRecording();
             qCInfo(lcUI) << "[Recorder] live recording disabled for format =" << format;
         }
+
+        // 原始 RX 记录：无论 LiveRecorder 的 CSV/TXT 选项如何，只要勾选了原始数据就记录到 raw CSV
+        m_rawRxOpenErrorShown = false;
+        if (m_rawRxEnabled)
+        {
+            startRawRxRecording();
+        }
+
         qCInfo(lcUI) << "[UserAction] click Start"
                      << "mode=" << ui->comboBox_Mode->currentText()
                      << "alg=" << ui->comboBox_Alg->currentText()
@@ -745,6 +1107,8 @@ MainWindow::MainWindow(QWidget *parent)
             {
                 m_reconnectTimer->stop();
             }
+            // 阶段 D2：运行中不允许用户继续改串口，避免配置/状态竞争
+            updateSerialUiByMode(m_modeIndex);
             QMetaObject::invokeMethod(m_logWorker,[this](){
                 m_logWorker->startCapture();
             },Qt::QueuedConnection);
@@ -774,6 +1138,32 @@ MainWindow::MainWindow(QWidget *parent)
         }
         else
         {
+            // 阶段 D2：串口仿真需要 PC 与 Fake 两端口；可用端口不足时先引导，避免多次尝试刷日志/假死
+            if (m_modeIndex == 1)
+            {
+                if (m_availablePorts.size() < 2)
+                {
+                    QMessageBox::warning(
+                        this,
+                        QStringLiteral("串口仿真端口不足"),
+                        QStringLiteral("当前可用串口数量不足，无法进行“串口仿真”。\n\n"
+                                      "建议：\n"
+                                      "1) 连接/安装更多虚拟串口（例如 com0com 的 PC/Fake 一对）；\n"
+                                      "2) 或切换为“纯软件仿真”。"));
+                    return;
+                }
+                if (!m_pcCfg.portName.isEmpty() && !m_fakeCfg.portName.isEmpty() && m_pcCfg.portName == m_fakeCfg.portName)
+                {
+                    QMessageBox::warning(
+                        this,
+                        QStringLiteral("串口仿真端口冲突"),
+                        QStringLiteral("当前 PC 与 Fake 使用了同一个端口（%1）。\n\n"
+                                      "串口仿真需要两端口形成虚拟串口对（PC/Fake）。\n"
+                                      "请到串口设置重新选择，或切换为“纯软件仿真”。").arg(m_pcCfg.portName));
+                    return;
+                }
+            }
+
             const bool pcOk = ensurePcPortOpen();
             const bool fakeOk = (m_modeIndex == 1) ? ensureFakePortOpen() : true;
             if (!pcOk || !fakeOk)
@@ -781,6 +1171,26 @@ MainWindow::MainWindow(QWidget *parent)
                 m_controlRunning = false;
                 qCWarning(lcSerial) << "[ModeRun] start failed: serial link not ready"
                                     << "pcOk=" << pcOk << "fakeOk=" << fakeOk;
+
+                // 阶段 D2：启动失败给明确引导（避免用户只看到日志）
+                if (!m_controlRunning)
+                {
+                    QString details;
+                    if (!pcOk)
+                    {
+                        details += QStringLiteral("PC 端口打开失败：%1\n").arg(m_pcCfg.portName);
+                    }
+                    if (m_modeIndex == 1 && !fakeOk)
+                    {
+                        details += QStringLiteral("Fake 端口打开失败：%1\n").arg(m_fakeCfg.portName);
+                    }
+                    QMessageBox::warning(
+                        this,
+                        QStringLiteral("串口打开失败"),
+                        QStringLiteral("串口链路未就绪，已停止启动。\n\n%1\n"
+                                      "建议：更换端口、检查端口是否被占用、确认波特率/虚拟串口对配置正确，必要时以管理员运行。")
+                            .arg(details));
+                }
                 if (m_autoReconnectEnabled)
                 {
                     scheduleReconnect(QStringLiteral("start failed"));
@@ -811,12 +1221,15 @@ MainWindow::MainWindow(QWidget *parent)
     //UI:停止
     connect(ui->btnStop,&QPushButton::clicked,this,[this](){
         stopLiveRecording();
+        stopRawRxRecording();
         m_controlRunning = false;
         m_reconnectAttemptCount = 0;
         if (m_reconnectTimer && m_reconnectTimer->isActive())
         {
             m_reconnectTimer->stop();
         }
+        // 运行结束：允许用户再次改串口配置
+        updateSerialUiByMode(m_modeIndex);
         qCInfo(lcUI) << "[UserAction] click Stop"
                      << "mode=" << ui->comboBox_Mode->currentText()
                      << "alg=" << ui->comboBox_Alg->currentText()
@@ -847,12 +1260,15 @@ MainWindow::MainWindow(QWidget *parent)
     //UI:清除
     connect(ui->btnClear,&QPushButton::clicked,this,[this](){
         stopLiveRecording();
+        stopRawRxRecording();
         m_controlRunning = false;
         m_reconnectAttemptCount = 0;
         if (m_reconnectTimer && m_reconnectTimer->isActive())
         {
             m_reconnectTimer->stop();
         }
+        // 阶段 D2：运行结束后允许再次改串口
+        updateSerialUiByMode(m_modeIndex);
         const double desiredTarget = m_targetInput ? m_targetInput->value() : 100.0;
         qCInfo(lcUI) << "[UserAction] click Clear"
                      << "mode=" << ui->comboBox_Mode->currentText()
@@ -1000,6 +1416,8 @@ MainWindow::MainWindow(QWidget *parent)
         const QString savedFormat = settings.value("record/exportFormat", QStringLiteral("none")).toString();
         QString selectedCsvPath = settings.value("record/liveCsvFilePath", m_liveCsvFilePath).toString();
         QString selectedTxtPath = settings.value("record/liveTxtFilePath", m_liveTxtFilePath).toString();
+        bool selectedRawEnabled = settings.value("record/rawEnabled", m_rawRxEnabled).toBool();
+        QString selectedRawCsvPath = settings.value("record/liveRawRxFilePath", m_rawRxCsvFilePath).toString();
 
         QDialog dlg(this);
         dlg.setWindowTitle(QStringLiteral("保存方式"));
@@ -1033,6 +1451,41 @@ MainWindow::MainWindow(QWidget *parent)
         layout->addWidget(btnOpenFile);
         layout->addWidget(btnOpenFolder);
 
+        // 阶段 D/E：原始数据(RX bytes)录制到一个响应的 CSV 文件
+        auto *rawRxCheck = new QCheckBox(QStringLiteral("原始数据CSV（RX字节流）"), &dlg);
+        rawRxCheck->setChecked(selectedRawEnabled);
+
+        auto *rawCheckRow = new QHBoxLayout();
+        rawCheckRow->addStretch();
+        rawCheckRow->addWidget(rawRxCheck);
+        rawCheckRow->addStretch();
+        layout->addLayout(rawCheckRow);
+
+        auto *rawPathEdit = new QLineEdit(&dlg);
+        rawPathEdit->setReadOnly(true);
+        rawPathEdit->setPlaceholderText(QStringLiteral("未选择原始数据保存文件"));
+        rawPathEdit->setText(selectedRawCsvPath);
+
+        auto *btnRawNewFile = new QPushButton(QStringLiteral("新建文件..."), &dlg);
+        auto *btnRawExistingFile = new QPushButton(QStringLiteral("选择已有文件..."), &dlg);
+        auto *btnRawOpenFile = new QPushButton(QStringLiteral("快捷打开文件"), &dlg);
+        auto *btnRawOpenFolder = new QPushButton(QStringLiteral("快捷打开所在文件夹"), &dlg);
+
+        auto setRawUiEnabled = [&]() {
+            const bool show = rawRxCheck->isChecked();
+            rawPathEdit->setVisible(show);
+            btnRawNewFile->setVisible(show);
+            btnRawExistingFile->setVisible(show);
+            btnRawOpenFile->setVisible(show);
+            btnRawOpenFolder->setVisible(show);
+        };
+        setRawUiEnabled();
+        layout->addWidget(rawPathEdit);
+        layout->addWidget(btnRawNewFile);
+        layout->addWidget(btnRawExistingFile);
+        layout->addWidget(btnRawOpenFile);
+        layout->addWidget(btnRawOpenFolder);
+
         auto refreshPathEdit = [&]() {
             if (csvRadio->isChecked())
             {
@@ -1050,6 +1503,71 @@ MainWindow::MainWindow(QWidget *parent)
         connect(csvRadio, &QRadioButton::toggled, &dlg, [&](bool){ refreshPathEdit(); });
         connect(txtRadio, &QRadioButton::toggled, &dlg, [&](bool){ refreshPathEdit(); });
         connect(noneRadio, &QRadioButton::toggled, &dlg, [&](bool){ refreshPathEdit(); });
+
+        connect(rawRxCheck, &QCheckBox::toggled, &dlg, [&](bool) {
+            setRawUiEnabled();
+        });
+
+        connect(btnRawNewFile, &QPushButton::clicked, &dlg, [&]() {
+            const QString suffix = QStringLiteral(".csv");
+            const QString defaultName =
+                QStringLiteral("realtime_rawrx_") + QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + suffix;
+            const QString initialDir = m_liveRecordRootDir.isEmpty() ? QDir::currentPath() : m_liveRecordRootDir;
+            const QString initial = QDir(initialDir).filePath(defaultName);
+            QString filePath = QFileDialog::getSaveFileName(
+                &dlg,
+                QStringLiteral("选择原始数据CSV保存文件"),
+                initial,
+                QStringLiteral("CSV 文件 (*.csv)"));
+            if (filePath.isEmpty())
+            {
+                return;
+            }
+            if (!filePath.endsWith(suffix, Qt::CaseInsensitive))
+            {
+                filePath += suffix;
+            }
+            selectedRawCsvPath = filePath;
+            rawPathEdit->setText(selectedRawCsvPath);
+        });
+
+        connect(btnRawExistingFile, &QPushButton::clicked, &dlg, [&]() {
+            const QString currentPath = selectedRawCsvPath;
+            const QString initialDir = currentPath.isEmpty()
+                ? m_liveRecordRootDir
+                : QFileInfo(currentPath).absolutePath();
+            const QString filePath = QFileDialog::getOpenFileName(
+                &dlg,
+                QStringLiteral("选择已有原始数据CSV文件"),
+                initialDir,
+                QStringLiteral("CSV 文件 (*.csv)"));
+            if (filePath.isEmpty())
+            {
+                return;
+            }
+            selectedRawCsvPath = filePath;
+            rawPathEdit->setText(selectedRawCsvPath);
+        });
+
+        connect(btnRawOpenFile, &QPushButton::clicked, &dlg, [&]() {
+            const QString p = rawPathEdit->text().trimmed();
+            if (p.isEmpty() || !QFileInfo::exists(p))
+            {
+                QMessageBox::information(&dlg, QStringLiteral("提示"), QStringLiteral("当前文件不存在，请先选择有效文件。"));
+                return;
+            }
+            QDesktopServices::openUrl(QUrl::fromLocalFile(p));
+        });
+
+        connect(btnRawOpenFolder, &QPushButton::clicked, &dlg, [&]() {
+            const QString p = rawPathEdit->text().trimmed();
+            const QString folder = p.isEmpty() ? m_liveRecordRootDir : QFileInfo(p).absolutePath();
+            if (folder.isEmpty())
+            {
+                return;
+            }
+            QDesktopServices::openUrl(QUrl::fromLocalFile(folder));
+        });
 
         connect(btnNewFile, &QPushButton::clicked, &dlg, [&]() {
             const bool chooseCsv = csvRadio->isChecked();
@@ -1146,6 +1664,13 @@ MainWindow::MainWindow(QWidget *parent)
         settings.setValue("record/liveTxtFilePath", selectedTxtPath);
         m_liveCsvFilePath = selectedCsvPath;
         m_liveTxtFilePath = selectedTxtPath;
+
+        // 原始数据保存设置
+        selectedRawEnabled = rawRxCheck->isChecked();
+        settings.setValue("record/rawEnabled", selectedRawEnabled);
+        settings.setValue("record/liveRawRxFilePath", selectedRawCsvPath);
+        m_rawRxEnabled = selectedRawEnabled;
+        m_rawRxCsvFilePath = selectedRawCsvPath;
         const QString activePath = (format == QStringLiteral("txt")) ? m_liveTxtFilePath : m_liveCsvFilePath;
         if (!activePath.isEmpty())
         {
@@ -1175,14 +1700,20 @@ MainWindow::MainWindow(QWidget *parent)
                      << "current=" << ui->m_cur->text()
                      << "ctrl=" << ui->m_ctrlValue->text()
                      << "format=" << format
+                     << "rawEnabled=" << selectedRawEnabled
+                     << "rawCsvPath=" << m_rawRxCsvFilePath
                      << "csvPath=" << m_liveCsvFilePath
                      << "txtPath=" << m_liveTxtFilePath;
 
+        QString rawActivePath = selectedRawEnabled
+            ? (selectedRawCsvPath.isEmpty() ? QStringLiteral("未选择") : selectedRawCsvPath)
+            : QStringLiteral("未启用");
         QMessageBox::information(this,
                                  QStringLiteral("保存方式"),
-                                 QStringLiteral("已保存当前设置。\n格式：%1\n文件：%2")
+                                 QStringLiteral("已保存当前设置。\n格式：%1\n文件：%2\n原始数据：%3")
                                      .arg(format.toUpper(),
-                                          activePath.isEmpty() ? QStringLiteral("未选择") : activePath));
+                                          activePath.isEmpty() ? QStringLiteral("未选择") : activePath,
+                                          rawActivePath));
     });
 
     connect(ui->btnSerialPort, &QPushButton::clicked, this, [this]() {
@@ -1226,6 +1757,74 @@ void MainWindow::refreshAvailableSerialPorts()
     else if (!m_availablePorts.contains(currentFake) && !m_availablePorts.isEmpty())
     {
         m_fakeCfg.portName = m_availablePorts.first();
+    }
+
+    // 阶段 D1：仅在“首次启动且历史端口不可用”时给一次性引导
+    if (!m_availablePorts.isEmpty()
+        && (m_pcCfg.portName != currentPc || m_fakeCfg.portName != currentFake))
+    {
+        QSettings settings("QtRealCtrl", "RealCtrl");
+        const bool hintShown = settings.value("serial/autoPortHintShown", false).toBool();
+        if (!hintShown)
+        {
+            settings.setValue("serial/autoPortHintShown", true);
+            const QString msg = QStringLiteral(
+                "检测到你上次配置的串口端口在当前机器不可用。\n"
+                "程序已自动选择可用端口：\n"
+                "PC=%1；Fake=%2。\n\n"
+                "提示：如果你要使用“串口仿真”，请确保 PC 与 Fake 两端口是一个虚拟串口对（例如 com0com）。\n"
+                "如果没有可用虚拟串口对，请直接使用“纯软件仿真”。")
+                                     .arg(m_pcCfg.portName, m_fakeCfg.portName);
+            QMessageBox::information(this, QStringLiteral("串口端口自动选择"), msg);
+        }
+    }
+}
+
+void MainWindow::cleanupOldRecords()
+{
+    QSettings settings("QtRealCtrl", "RealCtrl");
+    const int keepDays = settings.value("record/keepDays", 15).toInt();
+    if (keepDays <= 0)
+    {
+        return;
+    }
+    const QDateTime cutoff = QDateTime::currentDateTime().addDays(-keepDays);
+    if (m_liveRecordRootDir.isEmpty())
+    {
+        return;
+    }
+
+    // 你的项目里 CSV/TXT 目录可能存在于中文目录名下
+    const QStringList subDirs = {QStringLiteral("CSV数据"), QStringLiteral("TXT数据")};
+    for (const QString &sub : subDirs)
+    {
+        const QString absDir = QDir(m_liveRecordRootDir).filePath(sub);
+        QDir dir(absDir);
+        if (!dir.exists())
+        {
+            continue;
+        }
+
+        // 保守处理：只删除以 realtime_ 开头的文件
+        const QStringList csvFilters = {QStringLiteral("realtime_*.csv")};
+        const QStringList txtFilters = {QStringLiteral("realtime_*.txt")};
+        const QFileInfoList csvFiles = dir.entryInfoList(csvFilters, QDir::Files, QDir::Time);
+        const QFileInfoList txtFiles = dir.entryInfoList(txtFilters, QDir::Files, QDir::Time);
+
+        for (const QFileInfo &fi : csvFiles)
+        {
+            if (fi.exists() && fi.lastModified() < cutoff)
+            {
+                QFile::remove(fi.absoluteFilePath());
+            }
+        }
+        for (const QFileInfo &fi : txtFiles)
+        {
+            if (fi.exists() && fi.lastModified() < cutoff)
+            {
+                QFile::remove(fi.absoluteFilePath());
+            }
+        }
     }
 }
 
@@ -1301,6 +1900,8 @@ void MainWindow::applySerialConfigsToDevices()
         {
             m_pcDev->close();
         }
+        m_pcDev->setRawSerialLogEnabled(m_rawSerialLogEnabled);
+        m_pcDev->setRawRxCsvRecordingEnabled(m_rawRxEnabled && m_controlRunning);
         m_pcDev->setConfig(m_pcCfg);
         if (wasOpen)
         {
@@ -1317,6 +1918,8 @@ void MainWindow::applySerialConfigsToDevices()
             {
                 m_fake->close();
             }
+            m_fake->setRawSerialLogEnabled(m_rawSerialLogEnabled);
+            m_fake->setRawRxCsvRecordingEnabled(m_rawRxEnabled && m_controlRunning);
             m_fake->setConfig(m_fakeCfg);
             if (wasOpen)
             {
@@ -1328,6 +1931,8 @@ void MainWindow::applySerialConfigsToDevices()
     else
     {
         QMetaObject::invokeMethod(m_fake, [this]() {
+            m_fake->setRawSerialLogEnabled(m_rawSerialLogEnabled);
+            m_fake->setRawRxCsvRecordingEnabled(m_rawRxEnabled && m_controlRunning);
             m_fake->setConfig(m_fakeCfg);
         }, Qt::QueuedConnection);
     }
@@ -1340,7 +1945,7 @@ void MainWindow::updateSerialUiByMode(int modeIndex)
         return;
     }
     // 中文注释：纯软件仿真禁用串口设置按钮；实时和串口仿真允许打开设置
-    ui->btnSerialPort->setEnabled(modeIndex != 2);
+    ui->btnSerialPort->setEnabled(modeIndex != 2 && !m_controlRunning);
 }
 
 void MainWindow::pollSerialPorts()
@@ -1388,12 +1993,24 @@ void MainWindow::scheduleReconnect(const QString &reason)
     {
         return;
     }
+
+    // 阶段 D2：失败连续时做退避，避免每秒反复打日志/打重连
+    if (reason == QStringLiteral("attempt failed"))
+    {
+        m_reconnectIntervalMsCurrent = qMin(m_reconnectIntervalMsCurrent * 2, m_reconnectIntervalMs * 16);
+    }
+    else
+    {
+        m_reconnectIntervalMsCurrent = m_reconnectIntervalMs;
+    }
+
+    const int nextMs = m_reconnectIntervalMsCurrent;
     qCWarning(lcSerial) << "[Reconnect] scheduled"
                         << "reason=" << reason
-                        << "nextMs=" << m_reconnectIntervalMs
+                        << "nextMs=" << nextMs
                         << "attempt=" << (m_reconnectAttemptCount + 1)
                         << "/" << m_maxReconnectRetry;
-    m_reconnectTimer->start(m_reconnectIntervalMs);
+    m_reconnectTimer->start(nextMs);
 }
 
 void MainWindow::attemptReconnect()
@@ -1418,11 +2035,35 @@ void MainWindow::attemptReconnect()
 
     if (m_modeIndex == 1)
     {
-        QMetaObject::invokeMethod(m_fake, [this, &fakeOk]() {
+        const QStringList candidatePorts = m_availablePorts;
+        const QString pcPortName = m_pcCfg.portName;
+        QMetaObject::invokeMethod(m_fake, [this, &fakeOk, candidatePorts, pcPortName]() {
             if (!m_fake->isOpen())
             {
-                m_fake->setConfig(m_fakeCfg);
+                SerialPortConfig cfg = m_fakeCfg;
+                m_fake->setConfig(cfg);
                 fakeOk = m_fake->open();
+                if (fakeOk)
+                {
+                    return;
+                }
+
+                // 阶段 D1/D2：尝试替代 Fake 端口，减少“端口无效导致的无尽重连”
+                for (const QString &p : candidatePorts)
+                {
+                    if (p.isEmpty() || p == pcPortName)
+                    {
+                        continue;
+                    }
+                    cfg.portName = p;
+                    m_fake->setConfig(cfg);
+                    fakeOk = m_fake->open();
+                    if (fakeOk)
+                    {
+                        m_fakeCfg.portName = p;
+                        break;
+                    }
+                }
                 return;
             }
             fakeOk = true;
@@ -1434,6 +2075,16 @@ void MainWindow::attemptReconnect()
         qCInfo(lcSerial) << "[Reconnect] success"
                          << "attempt=" << m_reconnectAttemptCount;
         m_reconnectAttemptCount = 0;
+        m_reconnectIntervalMsCurrent = m_reconnectIntervalMs;
+
+        // 阶段 D2：如果曾因 Fake 连续失败暂停控制，重连成功后自动恢复
+        if (m_ctrlPausedByReconnect)
+        {
+            m_ctrlPausedByReconnect = false;
+            QMetaObject::invokeMethod(m_ctrl, [this]() {
+                m_ctrl->start();
+            }, Qt::QueuedConnection);
+        }
         return;
     }
 
@@ -1441,6 +2092,29 @@ void MainWindow::attemptReconnect()
                         << "attempt=" << m_reconnectAttemptCount
                         << "pcOk=" << pcOk
                         << "fakeOk=" << fakeOk;
+
+    // 阶段 D2：Fake 连续失败时先暂停控制输出，避免用户体验“假死/刷屏”
+    if (m_modeIndex == 1 && !fakeOk)
+    {
+        if (!m_ctrlPausedByReconnect && m_reconnectAttemptCount >= 3)
+        {
+            m_ctrlPausedByReconnect = true;
+            QMetaObject::invokeMethod(m_ctrl, [this]() {
+                m_ctrl->stop();
+            }, Qt::QueuedConnection);
+
+            if (!m_fakeReconnectHintShown)
+            {
+                m_fakeReconnectHintShown = true;
+                QMessageBox::warning(
+                    this,
+                    QStringLiteral("串口仿真 Fake 端口不可用"),
+                    QStringLiteral("Fake 端口连续打开失败，程序已暂停控制输出并进入重连。\n\n"
+                                  "原因通常包括：端口不存在/未正确配置虚拟串口对/端口被占用。\n"
+                                  "建议：先切换到“纯软件仿真”，或到串口设置里重新选择正确的 PC/Fake 虚拟串口对。"));
+            }
+        }
+    }
     scheduleReconnect(QStringLiteral("attempt failed"));
 }
 
@@ -1448,6 +2122,16 @@ void MainWindow::showSerialSettingsDialog()
 {
     refreshAvailableSerialPorts();
     const bool isRealTimeMode = (m_modeIndex == 0);
+
+    // 阶段 D2：运行中禁止改串口，避免设备状态/线程竞争
+    if (m_controlRunning)
+    {
+        QMessageBox::information(
+            this,
+            QStringLiteral("串口设置"),
+            QStringLiteral("程序正在运行中，请先停止后再修改串口设置。"));
+        return;
+    }
 
     QDialog dlg(this);
     dlg.setWindowTitle(QStringLiteral("串口设置"));
@@ -1547,10 +2231,13 @@ void MainWindow::showSerialSettingsDialog()
         return;
     }
 
-    m_pcCfg.portName = selectedPcPort;
+    // 阶段 D2：端口验证用“临时配置”，只有验证通过才落地到 m_pcCfg/m_fakeCfg
+    SerialPortConfig pcNewCfg = m_pcCfg;
+    SerialPortConfig fakeNewCfg = m_fakeCfg;
+    pcNewCfg.portName = selectedPcPort;
     if (!isRealTimeMode)
     {
-        m_fakeCfg.portName = selectedFakePort;
+        fakeNewCfg.portName = selectedFakePort;
     }
     bool baudOk = false;
     const int baud = baudBox->currentText().toInt(&baudOk);
@@ -1561,19 +2248,89 @@ void MainWindow::showSerialSettingsDialog()
                              QStringLiteral("波特率必须是 1~4000000 的整数。"));
         return;
     }
-    m_pcCfg.baudRate = baud;
-    m_pcCfg.dataBits = static_cast<QSerialPort::DataBits>(dataBitsBox->currentData().toInt());
-    m_pcCfg.parity = static_cast<QSerialPort::Parity>(parityBox->currentData().toInt());
-    m_pcCfg.stopBits = static_cast<QSerialPort::StopBits>(stopBitsBox->currentData().toInt());
-    m_pcCfg.flowControl = static_cast<QSerialPort::FlowControl>(flowControlBox->currentData().toInt());
+    pcNewCfg.baudRate = baud;
+    pcNewCfg.dataBits = static_cast<QSerialPort::DataBits>(dataBitsBox->currentData().toInt());
+    pcNewCfg.parity = static_cast<QSerialPort::Parity>(parityBox->currentData().toInt());
+    pcNewCfg.stopBits = static_cast<QSerialPort::StopBits>(stopBitsBox->currentData().toInt());
+    pcNewCfg.flowControl = static_cast<QSerialPort::FlowControl>(flowControlBox->currentData().toInt());
     if (!isRealTimeMode)
     {
-        m_fakeCfg.baudRate = m_pcCfg.baudRate;
-        m_fakeCfg.dataBits = m_pcCfg.dataBits;
-        m_fakeCfg.parity = m_pcCfg.parity;
-        m_fakeCfg.stopBits = m_pcCfg.stopBits;
-        m_fakeCfg.flowControl = m_pcCfg.flowControl;
+        fakeNewCfg.baudRate = pcNewCfg.baudRate;
+        fakeNewCfg.dataBits = pcNewCfg.dataBits;
+        fakeNewCfg.parity = pcNewCfg.parity;
+        fakeNewCfg.stopBits = pcNewCfg.stopBits;
+        fakeNewCfg.flowControl = pcNewCfg.flowControl;
     }
+
+    // 阶段 D2：端口不可用时“不允许保存/应用设置”
+    // 说明：这里做一次短暂的 open 测试，验证能正常打开后再 save/apply。
+    {
+        SerialPortConfig pcTestCfg = pcNewCfg;
+        SerialPortConfig fakeTestCfg = fakeNewCfg;
+
+        bool pcTestOk = false;
+        bool fakeTestOk = isRealTimeMode ? true : false;
+
+        QMetaObject::invokeMethod(
+            m_pcDev,
+            [&pcTestOk, this, pcTestCfg]() {
+                if (m_pcDev->isOpen())
+                {
+                    m_pcDev->close();
+                }
+                m_pcDev->setConfig(pcTestCfg);
+                pcTestOk = m_pcDev->open();
+                if (pcTestOk)
+                {
+                    m_pcDev->close();
+                }
+            },
+            Qt::BlockingQueuedConnection);
+
+        if (!isRealTimeMode)
+        {
+            QMetaObject::invokeMethod(
+                m_fake,
+                [&fakeTestOk, this, fakeTestCfg]() {
+                    if (m_fake->isOpen())
+                    {
+                        m_fake->close();
+                    }
+                    m_fake->setConfig(fakeTestCfg);
+                    fakeTestOk = m_fake->open();
+                    if (fakeTestOk)
+                    {
+                        m_fake->close();
+                    }
+                },
+                Qt::BlockingQueuedConnection);
+        }
+
+        if (!pcTestOk || !fakeTestOk)
+        {
+            const QString pcPart = (!pcTestOk) ? QStringLiteral("PC=%1").arg(selectedPcPort) : QString();
+            const QString fakePart = (!fakeTestOk && !isRealTimeMode) ? QStringLiteral("Fake=%1").arg(selectedFakePort) : QString();
+            const QString combined = QStringLiteral("%1%2")
+                                         .arg(pcPart)
+                                         .arg(fakePart.isEmpty() ? QString() : QStringLiteral("\n") + fakePart);
+
+            QMessageBox::warning(
+                this,
+                QStringLiteral("串口设置无效"),
+                QStringLiteral("所选端口无法打开。\n\n")
+                    + combined
+                    + QStringLiteral("\n\n建议：确认端口存在、未被占用，并在“串口仿真”模式下配置正确的虚拟串口对（PC/Fake）。"));
+            return;
+        }
+    }
+
+    // 验证通过后，才落地配置并允许保存/应用
+    m_pcCfg = pcNewCfg;
+    if (!isRealTimeMode)
+    {
+        m_fakeCfg = fakeNewCfg;
+    }
+
     m_autoReconnectEnabled = autoReconnectCheck->isChecked();
     m_reconnectIntervalMs = reconnectIntervalSpin->value();
     m_maxReconnectRetry = maxRetrySpin->value();
@@ -1695,6 +2452,90 @@ bool MainWindow::startLiveTxtRecording()
     return true;
 }
 
+bool MainWindow::startRawRxRecording()
+{
+    if (!m_rawRxEnabled)
+    {
+        return false;
+    }
+    if (m_modeIndex == 2)
+    {
+        // 纯软件仿真不依赖串口 RX
+        return false;
+    }
+    if (m_rawRxRecorder.isOpen())
+    {
+        return true;
+    }
+
+    // 若用户未选择路径，则使用一个默认文件名自动生成
+    QString path = m_rawRxCsvFilePath;
+    if (path.isEmpty())
+    {
+        const QString suffix = QStringLiteral(".csv");
+        const QString defaultName =
+            QStringLiteral("realtime_rawrx_") + QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + suffix;
+        path = QDir(m_liveRecordRootDir).filePath(defaultName);
+        m_rawRxCsvFilePath = path;
+        QSettings settings("QtRealCtrl", "RealCtrl");
+        settings.setValue("record/liveRawRxFilePath", m_rawRxCsvFilePath);
+        settings.setValue("record/rawEnabled", true);
+    }
+
+    QDir().mkpath(QFileInfo(path).absolutePath());
+    QString err;
+    if (!m_rawRxRecorder.openCsv(path, &err))
+    {
+        if (!m_rawRxOpenErrorShown)
+        {
+            m_rawRxOpenErrorShown = true;
+            QMessageBox::warning(this,
+                                 QStringLiteral("原始 RX 记录"),
+                                 QStringLiteral("无法打开原始数据 CSV：%1\n\n原因：%2")
+                                     .arg(path, err));
+        }
+        return false;
+    }
+
+    qCInfo(lcUI) << "[Recorder] raw rx started" << path;
+
+    // 阶段 D/E：开启 raw rx 采集（pc/fake 两端均可根据模式开启）
+    QMetaObject::invokeMethod(m_pcDev,
+                                [this]() { m_pcDev->setRawRxCsvRecordingEnabled(true); },
+                                Qt::QueuedConnection);
+    if (m_modeIndex == 1)
+    {
+        QMetaObject::invokeMethod(m_fake,
+                                    [this]() { m_fake->setRawRxCsvRecordingEnabled(true); },
+                                    Qt::QueuedConnection);
+    }
+    else
+    {
+        QMetaObject::invokeMethod(m_fake,
+                                    [this]() { m_fake->setRawRxCsvRecordingEnabled(false); },
+                                    Qt::QueuedConnection);
+    }
+
+    return true;
+}
+
+void MainWindow::stopRawRxRecording()
+{
+    m_rawRxRecorder.close();
+    if (m_pcDev)
+    {
+        QMetaObject::invokeMethod(m_pcDev,
+                                    [this]() { m_pcDev->setRawRxCsvRecordingEnabled(false); },
+                                    Qt::QueuedConnection);
+    }
+    if (m_fake)
+    {
+        QMetaObject::invokeMethod(m_fake,
+                                    [this]() { m_fake->setRawRxCsvRecordingEnabled(false); },
+                                    Qt::QueuedConnection);
+    }
+}
+
 void MainWindow::appendLiveCsvSample(const Sample &sample)
 {
     const QString modeText = ui && ui->comboBox_Mode ? ui->comboBox_Mode->currentText() : QStringLiteral("unknown");
@@ -1777,6 +2618,7 @@ void MainWindow::appendLogLine(const QString &line)
 MainWindow::~MainWindow()
 {
     stopLiveRecording();
+    stopRawRxRecording();
     // 中文注释：阶段 5 线程模型退出流程：先停控制，再 quit/wait 工作线程，最后析构对象
     if(m_ctrl && m_dataThread && m_dataThread->isRunning())
     {
@@ -1788,15 +2630,53 @@ MainWindow::~MainWindow()
     // 中文注释：跨线程对象优先在其所属线程排队 deleteLater，降低退出阶段风险
     if (m_dataThread && m_dataThread->isRunning())
     {
-        if (m_ctrl) { QMetaObject::invokeMethod(m_ctrl, "deleteLater", Qt::BlockingQueuedConnection); m_ctrl = nullptr; }
-        if (m_sys) { QMetaObject::invokeMethod(m_sys, "deleteLater", Qt::BlockingQueuedConnection); m_sys = nullptr; }
-        if (m_pcDev) { QMetaObject::invokeMethod(m_pcDev, "deleteLater", Qt::BlockingQueuedConnection); m_pcDev = nullptr; }
-        if (m_fake) { QMetaObject::invokeMethod(m_fake, "deleteLater", Qt::BlockingQueuedConnection); m_fake = nullptr; }
+        // 中文注释：先在各自线程中停止定时器/关闭设备，
+        // 然后在“定时器所属线程”里直接 delete，避免退出过程中仍触发跨线程 killTimer 警告。
+        if (m_fake)
+        {
+            FakeDevice* fake = m_fake;
+            m_fake = nullptr;
+            QMetaObject::invokeMethod(fake, [fake]() {
+                fake->close();
+                delete fake;
+            }, Qt::BlockingQueuedConnection);
+        }
+        if (m_pcDev)
+        {
+            SerialDevice* dev = m_pcDev;
+            m_pcDev = nullptr;
+            QMetaObject::invokeMethod(dev, [dev]() {
+                dev->close();
+                delete dev;
+            }, Qt::BlockingQueuedConnection);
+        }
+        if (m_sys)
+        {
+            SysInfo* sys = m_sys;
+            m_sys = nullptr;
+            QMetaObject::invokeMethod(sys, [sys]() {
+                delete sys;
+            }, Qt::BlockingQueuedConnection);
+        }
+        if (m_ctrl)
+        {
+            ControlManager* ctrl = m_ctrl;
+            m_ctrl = nullptr;
+            QMetaObject::invokeMethod(ctrl, [ctrl]() {
+                ctrl->stop();
+                delete ctrl;
+            }, Qt::BlockingQueuedConnection);
+        }
     }
     if (m_logThread && m_logThread->isRunning() && m_logWorker)
     {
-        QMetaObject::invokeMethod(m_logWorker, "deleteLater", Qt::BlockingQueuedConnection);
+        // 中文注释：停止采集逻辑，减少退出阶段的异步写入/处理
+        LogWorker* worker = m_logWorker;
         m_logWorker = nullptr;
+        QMetaObject::invokeMethod(worker, [worker]() {
+            worker->stopCapture();
+            delete worker;
+        }, Qt::BlockingQueuedConnection);
     }
 
     if(m_dataThread)
@@ -1811,11 +2691,38 @@ MainWindow::~MainWindow()
     }
 
     // 中文注释：若线程未启动或 deleteLater 未执行，回退到直接释放
-    delete m_ctrl;
-    delete m_sys;
-    delete m_pcDev;
-    delete m_fake;
-    delete m_logWorker;
+    // 但注意：这些对象可能仍绑定在其他线程上（含 QTimer），
+    // 必须在当前线程重新设定亲和性后再 delete，避免 killTimer 警告。
+    if (m_ctrl)
+    {
+        if (m_ctrl->thread() != QThread::currentThread()) { m_ctrl->moveToThread(QThread::currentThread()); }
+        delete m_ctrl;
+        m_ctrl = nullptr;
+    }
+    if (m_sys)
+    {
+        if (m_sys->thread() != QThread::currentThread()) { m_sys->moveToThread(QThread::currentThread()); }
+        delete m_sys;
+        m_sys = nullptr;
+    }
+    if (m_pcDev)
+    {
+        if (m_pcDev->thread() != QThread::currentThread()) { m_pcDev->moveToThread(QThread::currentThread()); }
+        delete m_pcDev;
+        m_pcDev = nullptr;
+    }
+    if (m_fake)
+    {
+        if (m_fake->thread() != QThread::currentThread()) { m_fake->moveToThread(QThread::currentThread()); }
+        delete m_fake;
+        m_fake = nullptr;
+    }
+    if (m_logWorker)
+    {
+        if (m_logWorker->thread() != QThread::currentThread()) { m_logWorker->moveToThread(QThread::currentThread()); }
+        delete m_logWorker;
+        m_logWorker = nullptr;
+    }
 
     for(auto it = m_algPool.begin();it != m_algPool.end();++it)
     {

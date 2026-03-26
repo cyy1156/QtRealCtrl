@@ -146,12 +146,16 @@ void FrameCodec::feedBytes(const QByteArray& data)
             qWarning()<<"CRC效验失败，丢弃帧";
             continue;
         }
+        const quint8 flags = static_cast<quint8>(frameData[4]);
         quint8 msgType=static_cast<quint8>(frameData[3]);
         quint16 seq =static_cast<quint8>(frameData[5]) |(static_cast<quint8>(frameData[6]) << 8);
         QByteArray payload=frameData.mid(9,plen);
 
         emit frameReceived(msgType,seq,payload);//emit frameReceived(...) 就是 “触发 frameReceived 事件，
         //把 msgType、seq、payload 传给所有监听这个事件的函数”；
+
+        // 额外信号：把合法整帧字节也透传出去（用于“按帧写 raw CSV”）
+        emit frameReceivedFull(msgType, flags, seq, payload, frameData);
 
     }
 }

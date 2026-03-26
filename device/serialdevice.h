@@ -22,6 +22,9 @@ class SerialDevice : public DeviceInterface
 public:
     explicit SerialDevice(QObject *parent = nullptr);
 
+    void setRawSerialLogEnabled(bool enabled);
+    void setRawRxCsvRecordingEnabled(bool enabled);
+
     void setPortName(const QString& name);
     void setBaudRate(quint32 baud);//设置波特率
     void setConfig(const SerialPortConfig& cfg);
@@ -34,10 +37,16 @@ public:
 
     //发送： 自动匹配seq、组帧、写串口
     bool send (quint8 msgType,quint8 flags,const QByteArray& payload);
+
+signals:
+    // 中文注释：当开启原始 RX 录制时，向上层抛出收到的字节流（用于写入 raw CSV）
+    void rawRxBytesReady(quint64 timestampMs, QByteArray bytes);
 private:
     void setupConnections();
 private:
     SerialPortConfig m_cfg;
+    bool m_rawSerialLogEnabled = false;
+    bool m_rawRxCsvRecordingEnabled = false;
 
     QSerialPort m_port; //串口
     FrameCodec m_codec; //一帧包

@@ -24,6 +24,10 @@ FakeDevice::FakeDevice(QObject *parent)
         emit errorOccurred(msg);
     });
 
+    connect(&m_dev, &SerialDevice::rawRxBytesReady, this, [this](quint64 ts, QByteArray bytes) {
+        emit rawRxBytesReady(ts, bytes);
+    });
+
     // 中文注释：定时器连接放在构造函数中，只建立一次
     m_timer.setInterval(50);
     connect(&m_timer,&QTimer::timeout,this,[this](){tick();});
@@ -36,6 +40,16 @@ void FakeDevice::setPortName(const QString& name)
 void FakeDevice::setConfig(const SerialPortConfig& cfg)
 {
     m_dev.setConfig(cfg);
+}
+
+void FakeDevice::setRawSerialLogEnabled(bool enabled)
+{
+    m_dev.setRawSerialLogEnabled(enabled);
+}
+
+void FakeDevice::setRawRxCsvRecordingEnabled(bool enabled)
+{
+    m_dev.setRawRxCsvRecordingEnabled(enabled);
 }
 
 SerialPortConfig FakeDevice::config() const

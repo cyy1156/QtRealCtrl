@@ -41,6 +41,9 @@ public:
 signals:
   //解码成功后的「回调通知」：当 feedBytes 解析出完整、合法的 SDS 帧后，发射该信号，把解析后的核心业务数据抛给上层（比如主程序处理 HELLO / 心跳 / 控制指令）。
     void frameReceived(quint8 msgType,quint16 seq,QByteArray payload);
+
+    // 中文注释：解码成功后携带 flags 和“整帧原始字节”，用于原始数据录制/调试。
+    void frameReceivedFull(quint8 msgType, quint8 flags, quint16 seq, QByteArray payload, QByteArray fullFrame);
 private:
     //SDS 协议的 CRC16-CCITT 校验计算函数，给编码 / 解码提供统一的 CRC 计算能力（编码时生成 CRC，解码时校验 CRC）。
     static quint16 crc16Ccitt(const quint8* data,int len);

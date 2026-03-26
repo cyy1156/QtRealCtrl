@@ -1,5 +1,6 @@
 #include "serialdevice.h"
 #include <QDebug>
+#include <QDateTime>
 SerialDevice::SerialDevice(QObject *parent)
     : DeviceInterface{parent}
 {
@@ -7,6 +8,16 @@ SerialDevice::SerialDevice(QObject *parent)
     m_port.setParent(this);
     m_codec.setParent(this);
     setupConnections();
+}
+
+void SerialDevice::setRawSerialLogEnabled(bool enabled)
+{
+    m_rawSerialLogEnabled = enabled;
+}
+
+void SerialDevice::setRawRxCsvRecordingEnabled(bool enabled)
+{
+    m_rawRxCsvRecordingEnabled = enabled;
 }
 
 void SerialDevice::setPortName(const QString& name)
@@ -103,14 +114,43 @@ void SerialDevice::setupConnections()
     // connect的第一个参数是信号发送者，第二个是要监听的信号，第三个是信号监听者，第四个要执行的槽函数
     // [this]：Lambda 的 “捕获列表”，表示捕获当前类的 this 指针，这样在 Lambda 内部才能访问 m_port、m_codec 这些成员变量；
     connect(&m_port,&QSerialPort::readyRead,this,[this](){
-         const QByteArray bytes =m_port.readAll();
+         const QByteArray bytes = m_port.readAll();
+         if (m_rawSerialLogEnabled && !bytes.isEmpty())
+         {
+             const QString hexStr = QString::fromLatin1(bytes.toHex(' '));
+             // 用 INFO 级别，确保在发布版过滤 DEBUG 时仍能看到“原文”(16进制字节流)
+             qInfo() << "[SerialRaw RX]" << hexStr;
+         }
          m_codec.feedBytes(bytes);
      });
      // FrameCodec 出完整帧 -> 直接转发给上层
-    connect(&m_codec,&FrameCodec::frameReceived,this,[this](quint8 msgType,quint16 seq,QByteArray payload){
-        emit frameReceived(msgType,seq,payload);//这个是DeviceInterface里面的函数
+    connect(&m_codec,
+            &FrameCodec::frameReceived,
+            this,
+            [this](quint8 msgType, quint16 seq, QByteArray payload) {
+                emit frameReceived(msgType, seq, payload); // 解析后的业务 payload
+            });
 
-    });
+    // 按“整帧”写 raw CSV（合法帧只发一次，避免 readyRead 粘包导致超长首行）
+    connect(&m_codec,
+            &FrameCodec::frameReceivedFull,
+            this,
+            [this](quint8 msgType, quint8 flags, quint16 seq, QByteArray payload, QByteArray fullFrame) {
+                Q_UNUSED(msgType);
+                Q_UNUSED(flags);
+                Q_UNUSED(seq);
+                Q_UNUSED(payload);
+                if (!m_rawRxCsvRecordingEnabled)
+                {
+                    return;
+                }
+                if (fullFrame.isEmpty())
+                {
+                    return;
+                }
+                const quint64 ts = static_cast<quint64>(QDateTime::currentMSecsSinceEpoch());
+                emit rawRxBytesReady(ts, fullFrame);
+            });
     connect(&m_port,&QSerialPort::errorOccurred,this,[this](QSerialPort::SerialPortError e){
         if(e==QSerialPort::NoError) return;
         emit errorOccurred("serial error:"+m_port.errorString());

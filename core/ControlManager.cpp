@@ -50,21 +50,37 @@ void ControlManager::start()
 void ControlManager::stop()
 {
     // 中文注释：停止时先下发“使能=0”，让设备立即退出执行态
-    if(!sendEnable(0))
+    // 若设备端口未打开（例如未 Start 就切模式/清空），则不应继续发送，避免刷警告
+    // 若控制定时器并未激活，则意味着没有执行态需要退出，也不应继续发送 enable=0
+    if (!m_timer.isActive())
     {
-        qCWarning(lcControl) << "send CONTROL_CMD(enable=0) failed";
+        if (m_timer.isActive()) m_timer.stop();
+        return;
+    }
+
+    if (m_dev && m_dev->isOpen())
+    {
+        if(!sendEnable(0))
+        {
+            qCWarning(lcControl) << "send CONTROL_CMD(enable=0) failed";
+        }
     }
     if(m_timer.isActive()) m_timer.stop();
 }
 void ControlManager::clear()
 {
     // 中文注释：清除时先停控制周期，避免边清除边继续下发控制量
-    if(m_timer.isActive()) m_timer.stop();
+    const bool wasActive = m_timer.isActive();
+    if(wasActive) m_timer.stop();
 
-    // 中文注释：约定 Enable=2 表示“清零命令”（FakeDevice 会把 current/target/u 清零）
-    if(!sendEnable(2))
+    // 中文注释：约定 Enable=2 表示“清零命令”
+    // 若设备端口未打开（未 Start 就 Clear），则不应继续发送，避免刷警告
+    if (wasActive && m_dev && m_dev->isOpen())
     {
-        qCWarning(lcControl) << "send CONTROL_CMD(enable=2 clear) failed";
+        if(!sendEnable(2))
+        {
+            qCWarning(lcControl) << "send CONTROL_CMD(enable=2 clear) failed";
+        }
     }
 
     // 中文注释：控制侧本地状态也同步归零，避免下一拍继续沿用旧控制输出

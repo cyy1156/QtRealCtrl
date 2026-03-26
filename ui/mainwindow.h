@@ -17,6 +17,7 @@
 #include <QVector>
 #include <QStringList>
 #include "file/liverecorder.h"
+#include "file/rawrxrecorder.h"
 //这个类型别名用来注册算法工厂
 using AlgCreator =std::function<IAlgorithm*(QObject*)>;
 QT_BEGIN_NAMESPACE
@@ -83,9 +84,11 @@ private:
     void pollSerialPorts();
     bool startLiveCsvRecording();
     bool startLiveTxtRecording();
+    bool startRawRxRecording();
     void stopLiveCsvRecording();
     void stopLiveTxtRecording();
     void stopLiveRecording();
+    void stopRawRxRecording();
     void appendLiveCsvSample(const Sample &sample);
     void appendLiveTxtSample(const Sample &sample);
     void appendLiveRecordSample(const Sample &sample);
@@ -105,6 +108,10 @@ private:
     QTimer* m_reconnectTimer = nullptr;
     int m_reconnectAttemptCount = 0;
     bool m_controlRunning = false;
+    // 阶段 D2：当串口仿真 Fake 端口多次失败时，暂停控制，避免“假死/刷屏”
+    bool m_ctrlPausedByReconnect = false;
+    bool m_fakeReconnectHintShown = false;
+    int m_reconnectIntervalMsCurrent = 1000;
     QString m_liveRecordRootDir;
     QString m_liveRecordFolderDir;
     QString m_liveCsvFilePath;
@@ -112,5 +119,16 @@ private:
     QString m_liveTxtFilePath;
     QString m_liveTxtFileNamePattern = QStringLiteral("realtime_%TIMESTAMP%.txt");
     LiveRecorder m_liveRecorder;
+
+    // 原始串口数据(RX bytes)录制到 CSV
+    bool m_rawRxEnabled = false;
+    QString m_rawRxCsvFilePath;
+    QString m_rawRxCsvFileNamePattern = QStringLiteral("realtime_rawrx_%TIMESTAMP%.csv");
+    RawRxRecorder m_rawRxRecorder;
+    bool m_rawRxOpenErrorShown = false;
+
+    // 阶段 E：避免重复弹窗、并在启动时做旧文件清理
+    bool m_recorderOpenErrorShown = false;
+    void cleanupOldRecords();
 };
 #endif // MAINWINDOW_H

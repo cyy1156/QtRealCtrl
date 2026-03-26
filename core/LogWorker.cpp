@@ -11,9 +11,12 @@ LogWorker::LogWorker(QObject *parent)
     , m_dataBuffer(1000) // 中文注释：默认环形缓冲容量；后续可由 UI 参数化
 {
     // 中文注释：50ms 生成一次 PlotDataChunk，与你现有控制周期保持一致
+    // 关键：把 QTimer 设为子对象，确保它的线程亲和性随 LogWorker 一起 moveToThread。
+    m_timer.setParent(this);
     m_timer.setInterval(50);
     connect(&m_timer, &QTimer::timeout, this, &LogWorker::onTimerTick);
-    m_timer.start();
+    // 中文注释：定时器只在开始采集时启动，停止采集时真正停掉，
+    // 避免退出阶段析构期间触发 QTimer 跨线程 stop 的 warning（killTimer）。
 }
 
 void LogWorker::setLogFilePath(const QString &path)
@@ -40,6 +43,11 @@ void LogWorker::startCapture()
     m_dataBuffer.clear();
     m_captureEnabled = true;
 
+    if (!m_timer.isActive())
+    {
+        m_timer.start();
+    }
+
     // 中文注释：注入一个零点样本，让“当前值/控制量”曲线从 0 明确起步
     Sample s0;
     s0.timestampMs = static_cast<quint64>(QDateTime::currentMSecsSinceEpoch());
@@ -52,12 +60,20 @@ void LogWorker::stopCapture()
 {
     // 中文注释：停止后不再接收样本，UI 将保持当前最后一帧图像不动
     m_captureEnabled = false;
+    if (m_timer.isActive())
+    {
+        m_timer.stop();
+    }
 }
 
 void LogWorker::clearData()
 {
     // 中文注释：清除缓存并通知 UI 清空曲线
     m_captureEnabled = false;
+    if (m_timer.isActive())
+    {
+        m_timer.stop();
+    }
     m_dataBuffer.clear();
     PlotDataChunk emptyChunk;
     emit historyDataReady(emptyChunk);

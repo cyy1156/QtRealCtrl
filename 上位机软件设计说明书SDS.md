@@ -43,7 +43,6 @@
 | **PayloadLen** | uint16 | 2  | 7    | 载荷字节数，接收端据此分帧 |
 | **Payload**| bytes   | N    | 9    | 业务数据，采用 TLV 格式 |
 | **CRC16**  | uint16  | 2    | 9+N  | CRC16-CCITT 校验（0x1021） |
-| **EOF**（可选）| 固定 | 1    | 11+N | 可选，如 `0x0D`，便于调试 |
 
 **各字段存在意义简述：**
 
@@ -58,14 +57,13 @@
 
 ### 2.3 Payload 格式：TLV
 
-每个参数采用 Tag-Length-Value 结构：
+每个参数采用 Tag-Length-Value（TLV）结构；**TLV 条目内不显式携带“数据类型字段”**，数据类型由 `Tag(TlvType)` 约定决定。
 
-| 字段  | 类型   | 长度 | 意义 |
+| 字段  | 类型   | 长度 | 说明 |
 |-------|--------|------|------|
-| **Tag**  | uint16 | 2 | 参数 ID（如 1=温度，2=压力） |
-| **Type** | uint8  | 1 | 数据类型：0=float, 1=double, 2=int32, 3=uint32, 4=int16, 5=bool |
-| **Len**  | uint16 | 2 | Value 字节长度 |
-| **Value**| bytes  | Len | 实际值（小端） |
+| **Tag**  | uint16 | 2 | 参数 ID（对应 `protocol/tlvcodec.h` 中的 `TlvType::...`） |
+| **Len**  | uint16 | 2 | Value 字节长度（小端） |
+| **Value**| bytes  | Len | 实际值（小端编码；float32/uint8/uint32/uint64 等长度由 Len 决定） |
 
 **TLV 优势**：可增删参数、顺序可变、旧程序可忽略未知 Tag。
 
@@ -75,19 +73,19 @@
 |---------|------|------------|----------------|------|
 | HELLO   | 0x01 | PC→设备    | 版本/能力      | 建链握手 |
 | HEARTBEAT | 0x02 | 双向       | 时间戳/状态    | 保活、掉线检测 |
-| SET_TARGET | 0x10 | PC→设备  | TLV（设定值）  | 下发目标值 |
-| SET_PARAMS | 0x11 | PC→设备  | TLV（算法参数）| 下发 PID/MPC 参数 |
-| CONTROL_CMD | 0x12 | PC→设备 | cmd(开始/停止/清零) | 控制命令 |
-| TELEMETRY | 0x20 | 设备→PC  | TLV（当前值/控制值）| 遥测数据 |
+| SET_TARGET | 0x10 | PC→设备  | TLV（设定值：TargetPosition/TargetTorque）  | 下发目标值 |
+| SET_PARAMS | 0x11 | PC→设备  | TLV（算法参数；当前工程未接入 ControlManager）| 预留：下发 PID/MPC 参数 |
+| CONTROL_CMD | 0x12 | PC→设备 | TLV（Enable:uint8：1=启动，0=停止，2=清零） | 控制命令 |
+| TELEMETRY | 0x20 | 设备→PC  | TLV（遥测：FeedbackPosition + Mode）| 遥测数据 |
 | ACK     | 0x7F | 双向       | ackSeq + resultCode | 可靠传输确认 |
 
 ### 2.5 规范约定
 
 - **字节序**：小端（Little Endian）
-- **字符串**：UTF-8 + uint16 长度前缀（尽量避免长字符串）
+- **字符串**：UTF-8 字节；长度由 TLV 的 Length 字段给出（尽量避免长字符串）
 - **CRC**：CRC16-CCITT，多项式 0x1021，初始值 0xFFFF
 - **最大帧长**：建议 1024 或 2048 字节
-- **超时与重发**：关键命令 `Flags & 0x01` 时需 ACK，超时 300ms 重发最多 3 次
+- **ACK 与重发**：当前上位机工程尚未实现 ACK/重发流程；Flags 预留，CRC 校验失败的帧会被丢弃。
 
 ### 2.6 一帧输入/输出模版：MsgType ↔ TlvType ↔ SysForm 对照表
 
@@ -137,51 +135,54 @@
 
 | MsgType | 值 | Payload 建议 TlvType | 对应 SysForm / 业务 | 用途 |
 |---------|-----|----------------------|----------------------|------|
-| HELLO | 0x01 | TimestampMs, HeartbeatIntervalMs（可选） | 建链参数 | 建链握手 |
-| HEARTBEAT | 0x02 | TimestampMs, StatusFlags（可选） | — | 保活 |
-| SET_TARGET | 0x10 | TargetPosition / TargetSpeed / TargetTorque 等 | **setValueList**（目标类 ParaNode） | 下发目标值 |
-| SET_PARAMS | 0x11 | Kp, Ki, Kd, MaxOutput, Mode, Enable 等 | **setValueList**（参数类 ParaNode） | 下发 PID/算法参数 |
-| CONTROL_CMD | 0x12 | Enable 或自定义 cmd（uint8） | 控制命令 | 启/停/清零 |
+| HELLO | 0x01 | 预留（当前工程未接入主链路） | — | 预留 |
+| HEARTBEAT | 0x02 | 预留（当前工程未接入主链路） | — | 预留 |
+| SET_TARGET | 0x10 | `TargetPosition(float32)`, `TargetTorque(float32)` | 下发控制目标与控制输出（TargetTorque 承载算法输出 `u`） | 下发目标值 |
+| SET_PARAMS | 0x11 | 预留（当前工程未接入 ControlManager） | — | 预留 |
+| CONTROL_CMD | 0x12 | `Enable(uint8=1/0/2)` | 控制命令 | 1 启动 / 0 停止（冻结） / 2 清零（复位） |
 
-**输出一帧流程**：按上表从 SysForm / 设定值 / 参数 构造 `QVector<TlvItem>` → `Tlvcodec::encodeItems(items)` 得 payload → `FrameCodec::encodeFrame(msgType, flags, seq, payload)` 得到可发送的一帧。
+**输出一帧流程**：由上层业务构造 `QVector<TlvItem>` → `Tlvcodec::encodeItems(items)` 得 payload → `FrameCodec::encodeFrame(msgType, flags, seq, payload)` 组帧发送。  
+当前工程发送控制帧时 `flags=0`，未使用 ACK/重发能力。
 
 #### 2.6.4 设备 → 上位机（输入帧模版）
 
 | MsgType | 值 | Payload 建议 TlvType | 对应 SysForm / 业务 | 用途 |
 |---------|-----|----------------------|----------------------|------|
-| TELEMETRY | 0x20 | FeedbackPosition, FeedbackSpeed, FeedbackTorque, Temperature, Current, StatusFlags 等 | **sampleValueList**（当前值）、**ctrlValueList**（控制量） | 遥测，更新 SysInfo / 曲线 |
-| ACK | 0x7F | ackSeq + resultCode（约定 TLV 或固定 layout） | — | 可靠传输确认 |
-| HEARTBEAT | 0x02 | TimestampMs, StatusFlags（可选） | — | 保活 |
+| TELEMETRY | 0x20 | `FeedbackPosition(float32)`, `Mode(uint8)` | 遥测：更新 `SysInfo::currentValue` / `SysInfo::mode`（并生成 Sample） | 遥测数据 |
+| ACK | 0x7F | 预留（当前工程未接入） | — | 预留 |
+| HEARTBEAT | 0x02 | 预留（当前工程未接入） | — | 预留 |
 
-**输入一帧流程**：串口 RX → `FrameCodec::feedBytes()` → 解析出 `(msgType, seq, payload)` → 若为 TELEMETRY，则 `Tlvcodec::decodeItems(payload)` 得 TlvItem 列表 → 按 TlvType 取 FeedbackPosition、FeedbackSpeed 等 → 写回 **SysForm::sampleValueList / ctrlValueList** 或 SysInfo，驱动 PlotWidget 刷新。
+**输入一帧流程**：串口 RX → `FrameCodec::feedBytes()` → 解析出 `(msgType, seq, payload)` → 若为 TELEMETRY，则 `Tlvcodec::decodeItems(payload)` 得 TlvItem 列表。  
+当前工程对 TELEMETRY 的处理逻辑为：更新 `SysInfo::currentValue/Mode`，并由 ControlManager 的缓存控制输出 `m_lastControlOutput` 组装 `Sample`：`position=FeedbackPosition`、`controlOutput=m_lastControlOutput`、`statusFlags=Mode`，发给 `LogWorker` 生成曲线数据。
 
-#### 2.6.5 MsgType ↔ SysForm 列表对照汇总
+#### 2.6.5 MsgType ↔ TLV 字段映射汇总（当前工程）
 
-| MsgType | 上行(PC→设备) | 下行(设备→PC) | SysForm 列表 |
+| MsgType | 上行(PC→设备) | 下行(设备→PC) | 当前工程映射要点 |
 |---------|----------------|----------------|--------------|
-| SET_TARGET / SET_PARAMS | 设定/参数 TLV | — | setValueList ↔ TLV |
-| TELEMETRY | — | 遥测 TLV | sampleValueList、ctrlValueList ← TLV |
-| CONTROL_CMD | 命令 TLV | — | 控制逻辑，可选写 ctrlStatuList |
-| HELLO / HEARTBEAT / ACK | 见上表 | 见上表 | 按需映射或仅协议层处理 |
-
-实现时：**编码**用 setValueList / 设定/参数 生成 TlvItem 再组帧；**解码**对 TELEMETRY 的 payload 解析 TlvItem 后写回 sampleValueList、ctrlValueList（及 SysInfo），即为一帧输入/输出模版。
+| SET_TARGET (0x10) | TargetPosition(float32) + TargetTorque(float32=u) | — | 控制目标与控制输出 u |
+| CONTROL_CMD (0x12) | Enable(uint8=1/0/2) | — | 启动/停止/清零 |
+| TELEMETRY (0x20) | — | FeedbackPosition(float32) + Mode(uint8) | 更新 `SysInfo::currentValue/mode`，并生成 `Sample(position/controlOutput/statusFlags)` |
+| HELLO/HEARTBEAT/ACK | 预留 | 预留 | 当前工程未接入主链路 |
 
 #### 2.6.6 示例：一帧输出 + 一帧输入
 
 **例 1：上位机下发目标位置（输出一帧）**
 
-- 业务：用户在界面把「目标位置」设为 **100.5**，要点「发送」。
+- 业务：用户在界面把「目标位置」设为 **100.5**，并通过控制周期下发控制输出 `u`（以 `TargetTorque` 表达）。
 - 步骤：
-  1. 从 setValueList 或界面得到目标值 `targetPosition = 100.5f`。
-  2. 构造 TLV 列表：一条 TlvItem，type=TargetPosition(0x0001)，value=float 100.5（小端 4 字节）。
-  3. `payload = Tlvcodec::encodeItems(items)`，此处 payload 长度约 7 字节（Tag2 + Type1 + Len2 + Value4，具体以 TlvCodec 实现为准）。
+ 1. 从界面得到目标值 `targetPosition = 100.5f`。
+ 2. 构造 TLV 列表：两条 TlvItem（float32，小端 4 字节）：
+    - `TargetPosition(0x0001)` = targetPosition
+    - `TargetTorque(0x0003)`  = u
+ 3. `payload = Tlvcodec::encodeItems(items)`（payload 长度取决于 TLV 数量与 Value 长度）。
   4. `frame = frameCodec->encodeFrame(0x10, 0, seq++, payload)`，得到一帧：  
      `55 AA 01 10 00 01 00 07 00 [payload…] [CRC16]`（MsgType=0x10 即 SET_TARGET）。
   5. `serialDevice->write(frame)` 发出。
 - 伪代码：
   ```cpp
   QVector<TlvItem> items;
-  Tlvcodec::appendFloat(items, TlvType::TargetPosition, 100.5f);
+  Tlvcodec::appendFloat(items, TlvType::TargetPosition, targetPosition);
+  Tlvcodec::appendFloat(items, TlvType::TargetTorque, u);
   QByteArray payload = Tlvcodec::encodeItems(items);
   QByteArray frame = frameCodec->encodeFrame(0x10, 0, nextSeq++, payload);
   serialDevice->write(frame);
@@ -189,29 +190,34 @@
 
 **例 2：设备上报遥测，上位机更新显示（输入一帧）**
 
-- 业务：设备按 50ms 周期上报当前「反馈位置」和「反馈速度」，上位机更新曲线和数值。
+- 业务：设备按 50ms 周期上报当前「反馈位置」和「Mode」，上位机更新曲线和控制值显示。
 - 设备发出的一帧（示意）：MsgType=TELEMETRY(0x20)，Payload 内两条 TLV：  
   - FeedbackPosition(0x0101) = 98.3（float）；  
-  - FeedbackSpeed(0x0102) = 1.2（float）。
+  - Mode(0x0004) = 1（uint8）。
 - 上位机步骤：
   1. 串口收到字节 → `frameCodec->feedBytes(rxData)`。
   2. 解析出完整帧后发射 `frameReceived(0x20, seq, payload)`。
   3. 若 msgType == TELEMETRY：`items = Tlvcodec::decodeItems(payload)`。
-  4. `tryGetFloat(items, TlvType::FeedbackPosition, pos)` → pos=98.3；`tryGetFloat(items, TlvType::FeedbackSpeed, speed)` → speed=1.2。
-  5. 把 pos、speed 写回 SysInfo（如 currentValue、currentSpeed）或 SysForm 的 sampleValueList / ctrlValueList 对应项。
-  6. 发射信号通知 UI，PlotWidget 从 DataBuffer/ SysInfo 取数刷新曲线。
+  4. `tryGetFloat(items, TlvType::FeedbackPosition, pos)` → pos=98.3；`tryGetUInt8(items, TlvType::Mode, mode)` → mode=1。
+  5. 更新 `SysInfo::currentValue=pos` 与 `SysInfo::mode=mode`；并把 `Sample.position=pos、Sample.controlOutput=u（缓存的控制输出）、Sample.statusFlags=mode` 发给 `LogWorker`。
+  6. UI 线程接收 `historyDataReady(PlotDataChunk)`，更新 `QCustomPlot` 曲线。
 - 伪代码：
   ```cpp
   // 在 frameReceived 的槽函数里
   if (msgType == 0x20) {  // TELEMETRY
       auto items = Tlvcodec::decodeItems(payload);
-      float pos, speed;
+      float pos;
+      quint8 mode = 0;
       if (Tlvcodec::tryGetFloat(items, TlvType::FeedbackPosition, pos) &&
-          Tlvcodec::tryGetFloat(items, TlvType::FeedbackSpeed, speed)) {
-          sysInfo->setCurrentValue(pos);   // 或更新 sampleValueList
-          sysInfo->setCurrentSpeed(speed); // 按你 SysInfo 字段命名
-          dataBuffer->append(pos, ctrlValue);  // 供曲线使用
-          emit dataUpdated();  // 通知 PlotWidget 刷新
+          Tlvcodec::tryGetUInt8(items, TlvType::Mode, mode)) {
+          sysInfo->setCurrentValue(pos);
+          sysInfo->setMode(mode);
+          Sample s;
+          s.timestampMs = static_cast<quint64>(QDateTime::currentMSecsSinceEpoch());
+          s.position = pos;
+          s.controlOutput = m_lastControlOutput; // 缓存的控制输出 u
+          s.statusFlags = static_cast<quint32>(mode);
+          emit telemetrySampleReady(s);
       }
   }
   ```
@@ -227,25 +233,31 @@
 ```
 RealCtrl/
 ├── ui/                    # 界面层
-│   ├── MainWindow.h/cpp
-│   └── PlotWidget/        # 实时曲线
-├── core/                  # 核心控制
-│   ├── ControlManager.h/cpp
-│   ├── SysInfo.h/cpp
-│   └── DataBuffer.h/cpp   # 曲线/日志公共数据缓存（环形缓冲区）
+│   ├── mainwindow.h/cpp     # 主窗口：曲线、控制、模式切换、录制入口
+│   └── parameterdialog.*     # 算法参数弹窗
+├── core/                  # 核心控制与缓存
+│   ├── controlmanager.*     # 控制周期、协议收发编排、Sample 打包
+│   ├── sysinfo.*            # 当前值/目标值/模式状态
+│   ├── logworker.*         # 日志/曲线数据处理线程
+│   ├── DataBuffer.*        # 固定容量环形缓冲区（Sample）
+│   └── applogger.*         # UI 日志面板（Qt 全局日志转发）
 ├── algorithm/             # 算法层
 │   ├── IAlgorithm.h
-│   ├── PIDAlgorithm.h/cpp
-│   └── MPCAlgorithm.h/cpp
-├── protocol/              # 协议层（新增）
-│   ├── FrameCodec.h/cpp   # 帧编解码
-│   ├── TlvCodec.h/cpp     # TLV 编解码
-│   └── SerialProtocol.h/cpp
+│   ├── pidalgorithm.*
+│   ├── predictivealgorithm.*
+│   ├── adeptivealgorithm.*
+│   ├── neuralpidalgorithm.*
+│   └── fnpidalgorithm.*
+├── protocol/              # 协议层
+│   ├── framecodec.*
+│   └── tlvcodec.*
 ├── device/                # 设备层
-│   ├── DeviceInterface.h
-│   └── SerialDevice.h/cpp
-└── file/                  # 文件管理
-    └── FileManager.h/cpp  # 文件读写接口，可被日志线程调用
+│   ├── serialdevice.*
+│   └── fakedevice.*       # 虚拟设备：用于串口仿真/闭环验证
+├── file/                  # 实时文件记录
+│   ├── liverecorder.*
+│   └── rawrxrecorder.*
+└── DcsProtocol/          # 旧协议兼容（sysform；当前未接入主链路）
 ```
 
 ### 3.2 数据流
@@ -267,7 +279,7 @@ ControlManager → SysInfo / 设定值
 
 - **线程 1：主线程（UI / 轻量业务）**
   - Qt 默认 GUI 线程。
-  - 负责：`MainWindow`、`PlotWidget` 等界面元素绘制与交互。
+    - 负责：`MainWindow`、`QCustomPlot` 等界面元素绘制与交互。
   - 只接收「已经处理好的数据快照」，做数值显示和曲线刷新，不参与重计算、不直接访问串口。
 
 - **线程 2：数据处理线程（串口 + 协议 + 实时控制）**
@@ -285,20 +297,20 @@ ControlManager → SysInfo / 设定值
     - **`SysInfo` 仅在此线程写入**，是系统「当前状态」的唯一权威来源。
     - UI 与日志线程只通过信号/快照读取，不直接跨线程修改。
 
-- **线程 3：日志与绘图数据线程（缓存处理 + 文件存储）**
+- **线程 3：日志/曲线数据线程（缓存 + 下采样）**
   - 典型对象归属：
-    - `file/FileManager` 或专门的 `LogWorker` 类。
+    - `core/LogWorker`（内部持有 `DataBuffer` 与定时器）。
   - 职责：
     - 维护一个或多个环形缓冲区/队列，接收来自数据处理线程的 `Sample` 序列。
-    - 从缓冲区读取数据，按批量写入日志/数据文件（CSV/二进制），避免在串口线程或 UI 线程内进行磁盘 IO。
+    - 从缓冲区读取数据，按批次生成 `PlotDataChunk` 并下采样（当前最多输出 200 点），通过信号通知 UI 绘图。
     - 为曲线绘制准备数据：
       - 从原始样本缓存中**下采样/裁剪**当前可视窗口数据（例如「最近 N 秒」）。
-      - 将已经整理好的 `PlotDataChunk`（少量点的集合）通过信号发给主线程中的 `PlotWidget`。
+      - 将已经整理好的 `PlotDataChunk`（少量点的集合）通过信号发给主线程中的 `QCustomPlot`。
   - 约束：
     - 不直接操作任何 Qt GUI 控件，仅准备数据。
     - 文件 IO、下采样等耗时操作都在此线程完成，保证串口与 UI 不被阻塞。
 
-> 说明：Qt 要求所有 GUI 控件必须在主线程绘制，因此「画图相关的重数据处理」放在第三线程，「真正调用绘制 API」留在主线程，以信号/槽传递 `PlotDataChunk` 实现解耦。
+> 说明：Qt 要求所有 GUI 控件必须在主线程绘制，因此「曲线点整理/下采样」放在第三线程，「真正调用绘图 API」留在主线程，通过信号/槽传递 `PlotDataChunk` 实现解耦。
 
 ### 3.4 日志与绘图缓存区设计（方案 B：环形缓冲区）
 
@@ -311,11 +323,12 @@ ControlManager → SysInfo / 设定值
      ```cpp
      struct Sample {
          quint64 timestampMs;
-         float   position;
-         float   speed;
-         float   current;
-         float   voltage;
-         quint32 statusFlags;
+         float   position;       // 反馈位置（当前值曲线）
+         float   controlOutput; // 控制量（控制量曲线）
+         float   speed;          // 当前工程暂时未填充/可预留扩展
+         float   current;        // 当前工程暂时未填充/可预留扩展
+         float   voltage;        // 当前工程暂时未填充/可预留扩展
+         quint32 statusFlags;   // 通常由 Mode 或状态位派生
      };
      ```
 
@@ -341,7 +354,7 @@ ControlManager → SysInfo / 设定值
 
    - **线程 1（主线程 / UI）**
      - 不直接访问 `DataBuffer` 或环形缓冲区。
-     - 仅通过接收 `historyDataReady(PlotDataChunk)` 信号获得一份已经整理好的数据拷贝，在 `PlotWidget` 内部存成自己的 `QVector<QPointF>` 或类似结构后绘制。
+     - 仅通过接收 `historyDataReady(PlotDataChunk)` 信号获得一份已经整理好的数据拷贝，在 `QCustomPlot` 内部存成自己的 `QVector<QPointF>` 或类似结构后绘制。
 
 3. **方案 B 的优势总结**
 
@@ -402,7 +415,7 @@ ControlManager → SysInfo / 设定值
    - **线程 1：主线程 / UI**
      - 槽函数接收：
        - `SysSnapshot`（来自线程 2）：用于数值显示（当前值、状态灯等）。
-       - `PlotDataChunk`（来自线程 3）：更新 `PlotWidget` 内部的数据容器并触发 `update()`。
+       - `PlotDataChunk`（来自线程 3）：更新 `QCustomPlot` 内部的数据容器并触发 `update()`。
      - 不做协议解析、不直接访问 `DataBuffer`，仅消费数据副本，保证界面流畅性。
 
 5. **整体时序总结**
@@ -437,22 +450,22 @@ ControlManager → SysInfo / 设定值
      - 这些值被写入 `SysInfo` 中，形成「最新一帧设备状态」。
      - 同时封装为 `Sample` 结构，通过信号送往线程 3，用于日志与绘图。
 
-4. **控制执行：周期性读取最新状态并下发控制量（线程 2 / 数据处理）**
-   - 控制周期定时器（例如 50 ms）在 `ControlManager` 内触发：
-     1. 从 `SysInfo` 读取当前状态（最近一次 TELEMETRY 的结果）。
-     2. 结合第 2 步保存的设定值/控制命令，执行 PID/MPC 等控制算法，计算新的输出（如目标电流/目标速度）。
-     3. 将计算结果封装为 TLV payload，调用 `FrameCodec::encodeFrame()` 组装 `SET_TARGET` / `CONTROL_CMD` 帧。
-     4. 调用 `SerialDevice::write()` 通过串口发送到设备。
+4. **控制执行：50ms 周期计算控制量并下发（线程 2 / 数据处理）**
+   - `ControlManager` 内置 `QTimer(50ms)`：
+     1. 从 `SysInfo` 读取 `targetValue`，并使用最近一次 TELEMETRY 解码后的缓存值 `m_cachedCurrent` 作为 `current`。
+     2. 调用当前 `IAlgorithm::compute(target, current, dtSec=0.05)` 计算控制输出 `u`，并缓存到 `m_lastControlOutput`。
+     3. 发送 `SET_TARGET(0x10)`：payload 内包含 `TargetPosition=target` 与 `TargetTorque=u`。
+     4. `CONTROL_CMD(0x12)` 仅在 `start/stop/clear` 按钮触发时发送：`Enable=1` 启动、`Enable=0` 停止（冻结）、`Enable=2` 清零（复位）。
    - 由此，在控制周期的每个 tick 内，系统都实现了“读取最新反馈 → 对比设定值 → 计算控制量 → 输出”的闭环。
 
-5. **数据记录与可视化：从缓存到曲线和日志（线程 3 + 线程 1）**
+5. **数据记录与可视化：从缓存到曲线和录制（线程 3 + 线程 1）**
    - 线程 3（日志与绘图数据）：
      - 通过 `appendSample(Sample)` 槽接收来自线程 2 的样本，将其写入 `DataBuffer` 环形缓冲区。
-     - 周期性从 `DataBuffer` 中提取最近 N 秒的样本窗口，下采样/裁剪后生成 `PlotDataChunk`。
-     - 将 `PlotDataChunk` 通过 `historyDataReady(PlotDataChunk)` 信号发往主线程，同时按批写入日志文件。
+     - 周期性从 `DataBuffer` 中提取窗口数据，下采样生成 `PlotDataChunk`，并通过 `historyDataReady(PlotDataChunk)` 信号发往主线程。
+     - 文件写盘方面：当前工程的 CSV/TXT 与 raw RX 录制由 `MainWindow` 内的 `LiveRecorder/RawRxRecorder` 完成。
    - 线程 1（UI）：
-     - 接收 `SysSnapshot` 信号，用于数值显示和状态指示灯。
-     - 接收 `PlotDataChunk` 信号，更新 `PlotWidget` 的数据模型并触发绘图。
+     - 接收 `PlotDataChunk` 信号，更新 `QCustomPlot` 并重绘两条曲线。
+     - 同时基于收到的 `Sample` 更新数值显示，并写入 `LiveRecorder`（CSV/TXT）与可选的 `RawRxRecorder`（原始 RX）。
 
 6. **用户感知与反馈闭环**
    - 用户在 UI 中看到的数值和曲线，来源于线程 2 中最新的设备状态 + 线程 3 中整理的历史样本。
@@ -611,8 +624,8 @@ ControlManager → SysInfo / 设定值
    - `LogWorker`（线程 3）：
      - 接收 `telemetrySampleReady(Sample)`，写入 `DataBuffer`，下采样生成 `PlotDataChunk`，发射到 UI。
 
-4. **PlotWidget 集成与性能调优**
-   - 在 UI 层实现/扩展 `PlotWidget`：
+4. **QCustomPlot 集成与性能调优**
+   - 在 UI 层实现/扩展 `QCustomPlot`：
      - 槽函数接收 `PlotDataChunk`，将点集合拷贝到自身数据容器，并调用 `update()` 绘制。
      - 注意控制刷新频率和点数量，避免一次绘制过多点导致 UI 卡顿。
    - 通过实际测试调整：
@@ -642,6 +655,7 @@ ControlManager → SysInfo / 设定值
 | 1.0  | 2025-03    | 初版：帧协议 + TLV + 实施步骤 |
 | 1.1  | 2025-03    | 新增 2.6：一帧输入/输出模版（MsgType ↔ TlvType ↔ SysForm 对照表） |
 | 1.2  | 2026-03    | 新增 3.3 线程模型、3.4 日志/绘图环形缓冲区设计与 3.5 实时控制主循环逻辑，补充 4.5 多线程实施步骤 |
+| 1.3  | 2026-03    | 对齐当前工程实现：TLV/TELMETRY 字段映射、3.1 目录结构、曲线/录制/运行模式 |
 
 ---
 
@@ -658,7 +672,7 @@ ControlManager → SysInfo / 设定值
      - SOF(0x55 0xAA) + Version + MsgType + Flags + Seq + PayloadLen + Payload + CRC16。
      - 小端序，实现 CRC16-CCITT（多项式 0x1021，初始值 0xFFFF）。
    - `feedBytes()` 支持半包/粘包处理，CRC 校验失败的帧自动丢弃。
-   - 已在 `com0com` 虚拟串口环境下完成半包、粘包、CRC 错帧等场景测试。
+   - 已验证半包/粘包重组与 CRC 校验失败帧丢弃等关键场景。
 
 2. **TLV 基础版（阶段 4.2 的子集）**
    - 实现 `Tlvcodec`，采用简化 TLV 结构：`Type(u16) + Length(u16) + Value`。
@@ -675,60 +689,69 @@ ControlManager → SysInfo / 设定值
      - 封装 `QSerialPort` 打开/关闭、错误处理。
      - 内部集成 `FrameCodec`，`readyRead` 时自动喂给解帧逻辑。
      - 对外仅暴露 `send(msgType, flags, payload)` 和 `frameReceived` 信号，实现串口与帧协议解耦。
-   - 使用 `com0com`（COM5 ↔ COM6）完成实际串口层联调。
+   - 已完成串口层联调与链路解耦验证（readyRead -> FrameCodec -> frameReceived）。
 
 4. **虚拟设备 FakeDevice（用于无硬件时的闭环验证）**
    - 在 `device/FakeDevice` 中：
      - 内部持有一个 `SerialDevice`（设备端）。
-     - 收到 `SET_TARGET(0x10)` 时，解析 TLV(TargetPosition) 更新内部目标值 `m_target`。
-     - 50ms 定时器周期执行：`m_current += (m_target - m_current) * 0.2`，并将 `m_current` 作为 `FeedbackPosition` 打包为 `TELEMETRY(0x20)` 回传上位机。
+     - 收到 `SET_TARGET(0x10)` 时：
+       - 解析 `TargetPosition` 更新目标值 `m_target`。
+       - 解析 `TargetTorque` 作为控制量命令缓存到 `m_torqueCmd`。
+     - 收到 `CONTROL_CMD(0x12)` 时解析 `Enable`：
+       - `Enable=1` 启动遥测定时器；
+       - `Enable=0` 停止遥测（冻结当前值，并把 `m_target=m_current`，同时 `m_torqueCmd=0`）；
+       - `Enable=2` 清零（`m_target=0, m_current=0, m_torqueCmd=0`）。
+     - 50ms 定时器周期执行对象模型更新：
+       - `m_current = m_current + (m_target - m_current) * 0.08 + m_torqueCmd * 0.02`
+       - 并以 `TELEMETRY(0x20)` 回传 `FeedbackPosition(float32)` 与 `Mode(uint8)=1`。
    - 实现了在没有真实硬件的情况下，模拟设备侧控制响应与遥测上报。
 
 5. **SysInfo 与 ControlManager（阶段 4.4 基础版）**
    - `SysInfo`：
      - 维护 `currentValue/targetValue/mode`，任一字段变化时发射 `changed()` 信号。
    - `ControlManager`：
-     - 构造函数中连接 `SerialDevice::frameReceived`，解析不同 `MsgType`。
-     - 通过 `QTimer(50ms)` 的 `runStep()` 周期性发送 `SET_TARGET` 帧：
-       - 从 `SysInfo::targetValue` 构造 TLV(TargetPosition)。
-     - 收到 `TELEMETRY(0x20)` 时，解析 TLV(FeedbackPosition/Mode)，回写 `SysInfo`，形成完整的数据闭环。
+     - 内置 `QTimer(50ms)` 的 `runStep()`：
+       - `start()` 发送 `CONTROL_CMD(0x12)`：`Enable=1` 并启动定时器；
+       - `stop()` 发送 `CONTROL_CMD(0x12)`：`Enable=0` 并停止定时器；
+       - `clear()` 发送 `CONTROL_CMD(0x12)`：`Enable=2` 并同步本地状态归零。
+       - `runStep()` 调用 `IAlgorithm::compute(target,current,dtSec=0.05)` 计算控制输出 `u`，并缓存到 `m_lastControlOutput`。
+       - 周期性发送 `SET_TARGET(0x10)`：payload 包含 `TargetPosition=target` 与 `TargetTorque=u`。
+     - 收到 `TELEMETRY(0x20)` 时：
+       - 解析 `FeedbackPosition` 更新 `SysInfo::currentValue`，解析 `Mode` 更新 `SysInfo::mode`；
+       - 以缓存的 `m_lastControlOutput` 打包 `Sample(position=FeedbackPosition, controlOutput=u, statusFlags=Mode)`，并通过 `telemetrySampleReady(Sample)` 发给日志/曲线线程。
 
 6. **MainWindow UI 集成**
    - 利用现有 UI 布局（左侧控制面板 + 顶部状态栏）完成与控制层的集成：
-     - `btnStart`：设定目标值（当前为固定 10.0，用于测试）并调用 `ControlManager::start()`。
-     - `btnStop`：调用 `ControlManager::stop()`，停止控制循环。
-     - `btnClear`：停止控制循环并将 `SysInfo` 中的 `targetValue/currentValue` 清零。
+     - 运行模式（`comboBox_Mode`）：
+       - `0=实时控制`：打开 PC 串口，关闭 FakeDevice；
+       - `1=串口仿真`：打开 PC 串口 + FakeDevice，形成串口闭环；
+       - `2=纯软件仿真`：关闭串口链路与 FakeDevice，内部 50ms 推进模型并直接构造 `Sample`。
+     - `btnStart/btnStop/btnClear`：分别触发 `LogWorker::startCapture/stopCapture/clearData` 与 `ControlManager` 的 start/stop/clear（纯软件仿真模式下由内部定时器控制）。
    - 顶部显示栏：
      - `m_setting` 显示当前设定值（由 `SysInfo::targetValue` 驱动）。
-     - `label_4` 显示当前值（由 `SysInfo::currentValue` 驱动）。
-     - `m_time` 由独立 `QTimer` 每秒刷新系统时间。
-   - 在 `SerialDevice(COM5)` + `FakeDevice(COM6)` 环境下，点击“开始”后，UI 上的“当前值”可以随时间逐渐逼近设定值，验证了串口协议、TLV 编解码、控制循环与 UI 刷新整个链路的正确性。
+     - `m_cur` 显示当前值（由 TELEMETRY/纯软件仿真的 `currentValue` 更新）。
+     - `m_time` 每秒刷新系统时间。
+   - 曲线显示与性能：
+     - `QCustomPlot` 两条曲线展示 `Sample.position`（当前值）与 `Sample.controlOutput`（控制量）。
+     - `LogWorker` 下采样后通过 `historyDataReady(PlotDataChunk)` 驱动重绘。
+   - 录制与日志：
+     - `LiveRecorder` 导出 CSV/TXT（含文件轮转/flush 节流）；
+     - `RawRxRecorder` 可选导出原始 RX 字节流帧（调试/离线分析）。
+     - 底部日志面板由 `AppLogger` 统一转发 Qt 日志。
 
-### 7.2 后续计划（与旧 MFC 算法工程的衔接）
+### 7.2 后续计划
 
-1. **抽象算法接口（IAlgorithm）**
-   - 在 `algorithm/` 目录创建 `IAlgorithm` 接口：
-     - `double compute(double target, double current);`
-     - `void setParameters(const QVariantMap& params);`
-   - `ControlManager` 中增加 `IAlgorithm* currentAlgorithm` 成员，并在 `runStep()` 中改为：
-     - 从 `SysInfo` 读取 `target/current`。
-     - 调用 `currentAlgorithm->compute(target, current)` 得到控制量。
-     - 将控制量编码为 TLV/帧发送给设备（后续与旧工程保持一致）。
+1. **接入设备侧完整遥测字段**
+   - 扩展 TELEMETRY 回传字段（`FeedbackSpeed/FeedbackTorque/Temperature/Voltage/Current/StatusFlags` 等），并让曲线与 `LiveRecorder` 增加对应列。
 
-2. **迁移和封装旧工程中的算法实现**
-   - 从 `realctrl - 副本 (2)` 中提取纯算法逻辑（如 PID/MPC），改写为实现 `IAlgorithm` 的子类：
-     - `PIDAlgorithm`、`MPCAlgorithm` 等。
-   - UI 侧通过 `AlgComboBox` 选择不同算法，`ControlManager` 动态切换 `currentAlgorithm`。
+2. **实现 `SET_PARAMS(0x11)` 与参数下发/回显**
+   - 将算法参数 schema 映射为 TLV（`Kp/Ki/Kd/MaxOutput/...`），并把 UI 参数变更下发到设备，必要时对齐 `ACK`/失败重试。
 
-3. **参数表（SysForm + ParaNode）驱动 UI 与协议（对应 SDS 552–555）**
-   - 为 `ParaNode` 增加 `tag/id` 字段或建立 name→tag 映射：
-     - 用于 TLV 中的 Tag(u16) 编码。
-   - 实现 `SysForm` 与 TLV 的自动映射模块：
-     - `encodeFromSysForm(const SysForm&) -> QByteArray payload`。
-     - `applyToSysForm(SysForm&, const QByteArray& payload)`。
-   - 基于 `setValueList(ParaNode 列表)` 动态生成参数面板 UI（FormLayout 或 TableWidget），实现“参数新增/修改只需改 SysForm，不需改 UI 和协议代码”的目标。
+3. **协议可靠性工程化**
+   - 根据协议中 Flags 预留的语义实现 ACK/重发、故障显示和重连策略，使链路在噪声/丢包环境下更稳定。
 
-4. **与真实设备联调替换 FakeDevice**
-   - 在真实串口设备就绪后，将 `FakeDevice` 替换为真实设备：
-     - 复用现有 `SerialDevice + FrameCodec + Tlvcodec + ControlManager + SysInfo + UI` 结构。
-   - 增强 ACK/重发策略、错误处理、故障显示等工程化特性。
+4. **统一文件记录职责与性能调优**
+   - 明确 `LogWorker` 与 `LiveRecorder/RawRxRecorder` 的写盘边界，避免重复/冲突，并进一步减少 UI 线程的写盘抖动。
+
+5. **旧协议 SysForm 兼容的模块化迁移**
+   - 将 `DcsProtocol/sysform` 的映射逻辑与当前 TLV/算法参数体系解耦，便于逐步替换硬编码。

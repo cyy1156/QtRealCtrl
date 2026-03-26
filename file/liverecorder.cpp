@@ -1,5 +1,7 @@
 #include "liverecorder.h"
 #include <QDateTime>
+#include <QFileInfo>
+#include <QDir>
 
 static QString statusFlagToName(quint32 flags)
 {
@@ -14,6 +16,16 @@ static QString statusFlagToName(quint32 flags)
     default:
         return QStringLiteral("STATUS_%1").arg(flags);
     }
+}
+
+void LiveRecorder::setMaxCsvSizeBytes(quint64 bytes)
+{
+    m_maxCsvBytes = bytes;
+}
+
+void LiveRecorder::setMaxTxtSizeBytes(quint64 bytes)
+{
+    m_maxTxtBytes = bytes;
 }
 
 double LiveRecorder::calcElapsedSec(quint64 baseTimestampMs, quint64 currentTimestampMs)
@@ -38,6 +50,28 @@ bool LiveRecorder::isTxtOpen() const
 bool LiveRecorder::openCsv(const QString &path, QString *errorMessage)
 {
     closeCsv();
+    m_csvPath = path;
+
+    // 若文件已超过限制，优先轮转到新文件，避免无限膨胀
+    if (m_maxCsvBytes > 0)
+    {
+        const QFileInfo fi(path);
+        if (fi.exists() && fi.size() > static_cast<qint64>(m_maxCsvBytes))
+        {
+            // 轮转失败就直接返回错误，让用户处理权限/占用问题
+            const QString rotatedPath =
+                fi.dir().filePath(fi.completeBaseName() + "_rotated_" + QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + "." + fi.suffix());
+            if (!QFile::rename(path, rotatedPath))
+            {
+                if (errorMessage)
+                {
+                    *errorMessage = QStringLiteral("文件过大且轮转失败（可能无权限或文件仍被占用）。");
+                }
+                return false;
+            }
+        }
+    }
+
     m_csvFile.setFileName(path);
     if (!m_csvFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text))
     {
@@ -61,6 +95,26 @@ bool LiveRecorder::openCsv(const QString &path, QString *errorMessage)
 bool LiveRecorder::openTxt(const QString &path, QString *errorMessage)
 {
     closeTxt();
+    m_txtPath = path;
+
+    if (m_maxTxtBytes > 0)
+    {
+        const QFileInfo fi(path);
+        if (fi.exists() && fi.size() > static_cast<qint64>(m_maxTxtBytes))
+        {
+            const QString rotatedPath =
+                fi.dir().filePath(fi.completeBaseName() + "_rotated_" + QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + "." + fi.suffix());
+            if (!QFile::rename(path, rotatedPath))
+            {
+                if (errorMessage)
+                {
+                    *errorMessage = QStringLiteral("文件过大且轮转失败（可能无权限或文件仍被占用）。");
+                }
+                return false;
+            }
+        }
+    }
+
     m_txtFile.setFileName(path);
     if (!m_txtFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text))
     {
@@ -114,6 +168,8 @@ void LiveRecorder::appendCsvSample(const Sample &sample,
     {
         m_csvStream.flush();
         m_csvPendingFlushRows = 0;
+        // 每次 flush 后做一次轮转检查，避免无限增长
+        rotateCsvIfNeeded();
     }
 }
 
@@ -149,7 +205,142 @@ void LiveRecorder::appendTxtSample(const Sample &sample,
     {
         m_txtStream.flush();
         m_txtPendingFlushRows = 0;
+        rotateTxtIfNeeded();
     }
+}
+
+bool LiveRecorder::rotateCsvIfNeeded()
+{
+    if (m_maxCsvBytes == 0)
+    {
+        return false;
+    }
+    if (!m_csvFile.isOpen())
+    {
+        return false;
+    }
+    if (m_csvPath.isEmpty())
+    {
+        return false;
+    }
+    if (m_csvFile.size() <= static_cast<qint64>(m_maxCsvBytes))
+    {
+        return false;
+    }
+    return rotateCsv();
+}
+
+bool LiveRecorder::rotateTxtIfNeeded()
+{
+    if (m_maxTxtBytes == 0)
+    {
+        return false;
+    }
+    if (!m_txtFile.isOpen())
+    {
+        return false;
+    }
+    if (m_txtPath.isEmpty())
+    {
+        return false;
+    }
+    if (m_txtFile.size() <= static_cast<qint64>(m_maxTxtBytes))
+    {
+        return false;
+    }
+    return rotateTxt();
+}
+
+bool LiveRecorder::rotateCsv()
+{
+    if (!m_csvFile.isOpen() || m_csvPath.isEmpty())
+    {
+        return false;
+    }
+
+    // 保留 baseTimestamp：轮转成功时重置，失败时继续追加
+    const quint64 keepBaseTimestampMs = m_csvBaseTimestampMs;
+
+    m_csvStream.flush();
+    m_csvFile.close();
+
+    const QFileInfo fi(m_csvPath);
+    const QString rotatedPath =
+        fi.dir().filePath(fi.completeBaseName() + "_rotated_" + QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + "." + fi.suffix());
+
+    const bool renamed = QFile::rename(m_csvPath, rotatedPath);
+
+    m_csvFile.setFileName(m_csvPath);
+    if (!m_csvFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text))
+    {
+        return false;
+    }
+    m_csvStream.setDevice(&m_csvFile);
+
+    // 轮转成功：从新文件开始写表头，并重置时间基准
+    if (renamed)
+    {
+        m_csvPendingFlushRows = 0;
+        m_csvBaseTimestampMs = 0;
+        if (m_csvFile.size() == 0)
+        {
+            m_csvStream << "date,time,elapsed_sec,target,position,control_output,mode,algorithm,status_flags\n";
+            m_csvStream.flush();
+        }
+    }
+    else
+    {
+        // 轮转失败：尽量继续写，保持时间基准不变
+        m_csvBaseTimestampMs = keepBaseTimestampMs;
+        m_csvPendingFlushRows = 0;
+    }
+
+    return renamed;
+}
+
+bool LiveRecorder::rotateTxt()
+{
+    if (!m_txtFile.isOpen() || m_txtPath.isEmpty())
+    {
+        return false;
+    }
+
+    const quint64 keepBaseTimestampMs = m_txtBaseTimestampMs;
+
+    m_txtStream.flush();
+    m_txtFile.close();
+
+    const QFileInfo fi(m_txtPath);
+    const QString rotatedPath =
+        fi.dir().filePath(fi.completeBaseName() + "_rotated_" + QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + "." + fi.suffix());
+
+    const bool renamed = QFile::rename(m_txtPath, rotatedPath);
+
+    m_txtFile.setFileName(m_txtPath);
+    if (!m_txtFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text))
+    {
+        return false;
+    }
+    m_txtStream.setDevice(&m_txtFile);
+
+    if (renamed)
+    {
+        m_txtPendingFlushRows = 0;
+        m_txtBaseTimestampMs = 0;
+        if (m_txtFile.size() == 0)
+        {
+            m_txtStream << "# QtRealCtrl realtime text log\n";
+            m_txtStream << "# columns: date time elapsed_sec target position control_output mode algorithm status_flags\n";
+            m_txtStream.flush();
+        }
+    }
+    else
+    {
+        m_txtBaseTimestampMs = keepBaseTimestampMs;
+        m_txtPendingFlushRows = 0;
+    }
+
+    return renamed;
 }
 
 void LiveRecorder::closeCsv()

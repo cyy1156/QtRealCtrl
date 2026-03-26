@@ -32,7 +32,8 @@ QFrame#BottomDispalyfame { background-color: rgb(245, 245, 245); }
 QWidget#TopPlane, QWidget#LeftPlane, QWidget#RightPlane, QWidget#BottomPlane { border: 1px solid black; }
 QWidget#LeftPlane { background-color: rgb(240, 240, 240); }
 QWidget#RightPlane { background-color: rgb(255, 255, 255); }
-QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
+QWidget#BottomPlane { background-color: rgb(34, 37, 60); }
+ </string>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayoutCentral">
     <property name="spacing">
@@ -486,160 +487,6 @@ QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
                 <property name="frameShadow">
                  <enum>QFrame::Shadow::Raised</enum>
                 </property>
-                <widget class="QFrame" name="BottomDispalyfame">
-                 <property name="geometry">
-                  <rect>
-                   <x>240</x>
-                   <y>0</y>
-                   <width>771</width>
-                   <height>51</height>
-                  </rect>
-                 </property>
-                 <property name="font">
-                  <font>
-                   <italic>true</italic>
-                   <bold>true</bold>
-                  </font>
-                 </property>
-                 <property name="frameShape">
-                  <enum>QFrame::Shape::StyledPanel</enum>
-                 </property>
-                 <property name="frameShadow">
-                  <enum>QFrame::Shadow::Raised</enum>
-                 </property>
-                 <widget class="QLabel" name="m_setting">
-                  <property name="geometry">
-                   <rect>
-                    <x>90</x>
-                    <y>10</y>
-                    <width>95</width>
-                    <height>27</height>
-                   </rect>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <pointsize>16</pointsize>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string/>
-                  </property>
-                 </widget>
-                 <widget class="QLabel" name="TimeLable">
-                  <property name="geometry">
-                   <rect>
-                    <x>200</x>
-                    <y>10</y>
-                    <width>60</width>
-                    <height>25</height>
-                   </rect>
-                  </property>
-                  <property name="text">
-                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; font-weight:700;&quot;&gt;时间：&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                  </property>
-                 </widget>
-                 <widget class="QLabel" name="m_time">
-                  <property name="geometry">
-                   <rect>
-                    <x>255</x>
-                    <y>10</y>
-                    <width>120</width>
-                    <height>31</height>
-                   </rect>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <pointsize>16</pointsize>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string/>
-                  </property>
-                  <property name="textFormat">
-                   <enum>Qt::TextFormat::AutoText</enum>
-                  </property>
-                 </widget>
-                 <widget class="QLabel" name="Curlabel">
-                  <property name="geometry">
-                   <rect>
-                    <x>400</x>
-                    <y>10</y>
-                    <width>70</width>
-                    <height>25</height>
-                   </rect>
-                  </property>
-                  <property name="text">
-                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; font-weight:700;&quot;&gt;当前值：&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                  </property>
-                 </widget>
-                 <widget class="QLabel" name="m_cur">
-                  <property name="geometry">
-                   <rect>
-                    <x>470</x>
-                    <y>10</y>
-                    <width>95</width>
-                    <height>31</height>
-                   </rect>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <pointsize>16</pointsize>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string/>
-                  </property>
-                 </widget>
-                 <widget class="QLabel" name="Setinglabel">
-                  <property name="geometry">
-                   <rect>
-                    <x>20</x>
-                    <y>10</y>
-                    <width>70</width>
-                    <height>31</height>
-                   </rect>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <pointsize>10</pointsize>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:12pt; font-weight:700;&quot;&gt;设定值：&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;&lt;br/&gt;&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                  </property>
-                 </widget>
-                 <widget class="QLabel" name="CtrlValueLabel">
-                  <property name="geometry">
-                   <rect>
-                    <x>585</x>
-                    <y>10</y>
-                    <width>70</width>
-                    <height>25</height>
-                   </rect>
-                  </property>
-                  <property name="text">
-                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; font-weight:700;&quot;&gt;控制值：&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                  </property>
-                 </widget>
-                 <widget class="QLabel" name="m_ctrlValue">
-                  <property name="geometry">
-                   <rect>
-                    <x>655</x>
-                    <y>10</y>
-                    <width>105</width>
-                    <height>31</height>
-                   </rect>
-                  </property>
-                  <property name="font">
-                   <font>
-                    <pointsize>16</pointsize>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>0</string>
-                  </property>
-                 </widget>
-                </widget>
                 <widget class="QComboBox" name="comboBox_Mode">
                  <property name="geometry">
                   <rect>
@@ -673,6 +520,138 @@ QWidget#BottomPlane { background-color: rgb(34, 37, 60); }</string>
                  </property>
                  <property name="text">
                   <string>模式:</string>
+                 </property>
+                </widget>
+                <widget class="QLabel" name="Setinglabel">
+                 <property name="geometry">
+                  <rect>
+                   <x>270</x>
+                   <y>10</y>
+                   <width>70</width>
+                   <height>31</height>
+                  </rect>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:12pt; font-weight:700;&quot;&gt;设定值：&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;&lt;br/&gt;&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
+                </widget>
+                <widget class="QLabel" name="m_setting">
+                 <property name="geometry">
+                  <rect>
+                   <x>340</x>
+                   <y>10</y>
+                   <width>95</width>
+                   <height>27</height>
+                  </rect>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <pointsize>16</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+                <widget class="QLabel" name="TimeLable">
+                 <property name="geometry">
+                  <rect>
+                   <x>440</x>
+                   <y>10</y>
+                   <width>60</width>
+                   <height>25</height>
+                  </rect>
+                 </property>
+                 <property name="text">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; font-weight:700;&quot;&gt;时间：&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
+                </widget>
+                <widget class="QLabel" name="m_time">
+                 <property name="geometry">
+                  <rect>
+                   <x>490</x>
+                   <y>10</y>
+                   <width>120</width>
+                   <height>31</height>
+                  </rect>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <pointsize>16</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="textFormat">
+                  <enum>Qt::TextFormat::AutoText</enum>
+                 </property>
+                </widget>
+                <widget class="QLabel" name="Curlabel">
+                 <property name="geometry">
+                  <rect>
+                   <x>630</x>
+                   <y>10</y>
+                   <width>70</width>
+                   <height>25</height>
+                  </rect>
+                 </property>
+                 <property name="text">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; font-weight:700;&quot;&gt;当前值：&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
+                </widget>
+                <widget class="QLabel" name="m_cur">
+                 <property name="geometry">
+                  <rect>
+                   <x>710</x>
+                   <y>10</y>
+                   <width>95</width>
+                   <height>31</height>
+                  </rect>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <pointsize>16</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+                <widget class="QLabel" name="CtrlValueLabel">
+                 <property name="geometry">
+                  <rect>
+                   <x>810</x>
+                   <y>10</y>
+                   <width>70</width>
+                   <height>25</height>
+                  </rect>
+                 </property>
+                 <property name="text">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt; font-weight:700;&quot;&gt;控制值：&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
+                </widget>
+                <widget class="QLabel" name="m_ctrlValue">
+                 <property name="geometry">
+                  <rect>
+                   <x>890</x>
+                   <y>10</y>
+                   <width>105</width>
+                   <height>31</height>
+                  </rect>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <pointsize>16</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>0</string>
                  </property>
                 </widget>
                </widget>

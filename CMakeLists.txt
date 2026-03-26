@@ -46,6 +46,8 @@ set(REALCTRL_SOURCES
     device/fakedevice.cpp
     file/liverecorder.h
     file/liverecorder.cpp
+    file/rawrxrecorder.h
+    file/rawrxrecorder.cpp
     algorithm/IAlgorithm.h
     algorithm/pidalgorithm.h
     algorithm/pidalgorithm.cpp
